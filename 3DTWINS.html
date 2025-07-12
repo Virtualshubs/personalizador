@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Twins Scene</title>
+  <link
+      rel="icon"
+      href="https://virtualshubs.github.io/personalizador/3dtwinslogo2025:2026.png"
+      type="image/x-icon"
+    />
+  <script type="module" src="https://unpkg.com/@google/model-viewer@latest/dist/model-viewer.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+ body {
+  margin: 0;
+  overflow: hidden;
+  font-family: "Poppins", Arial, sans-serif;
+  background-color: #f7f7f7; /* Fondo suave */
+}
+
+canvas {
+  display: block;
+  background-color: #000000;
+  margin: 0 auto; /* Centramos el canvas si es necesario */
+}
+
+.info-modal {
+  width: 100%;
+  max-width: none;
+  height: auto;
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  background-color: #ffffff;
+  color: #333333;
+  padding: 20px;
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  font-family: "Poppins", Arial, sans-serif;
+  z-index: 2000;
+  transition: all 0.3s ease;
+}
+
+.modal-close {
+  background-color: transparent;
+  color: #333333;
+  padding: 6px 10px;
+  border: 2px solid #333333;
+  cursor: pointer;
+  border-radius: 50%;
+  font-weight: bold;
+  position: absolute;
+  top: 10px;
+  right: 60px;
+  transition: all 0.3s;
+}
+
+.modal-close:hover {
+  background-color: #f0f0f0;
+  border-color: #1e1e1e;
+}
+
+.modal-content {
+  display: flex;
+  padding: 20px;
+}
+
+.modal-left {
+  flex: 1;
+  padding-right: 20px;
+}
+
+.modal-image {
+  width: 100%;
+  max-height: 300px;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.1);
+}
+
+.modal-right {
+  flex: 1;
+}
+
+.modal-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.modal-sku,
+.modal-description {
+  font-size: 16px;
+  margin-bottom: 15px;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.button {
+  background-color: #1e1e1e;
+  color: white;
+  padding: 12px 24px;
+  margin: 10px 0;
+  cursor: pointer;
+  border-radius: 25px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+  text-align: center;
+}
+
+.button:hover {
+  transform: scale(1.1);
+  background-color: #ff8c00;
+  transition: all 0.3s ease;
+}
+
+.color-button-container {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.color-button-container button {
+  background-color: #f1f1f1;
+  color: #333;
+  padding: 8px 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.color-button-container button:hover {
+  background-color: #333;
+  color: white;
+}
+
+  </style>
+</head>
+<body>
+
+  <div style="position: relative; text-align: center; margin-top: 10px;">
+    <a href="https://www.virtualshubs.com/desarrollos-3d-a-medida" target="_blank" style="text-decoration: none;">
+      <img src="https://virtualshubs.github.io/personalizador/3dtwinslogo2025:2026.png" alt="Marca de Agua" style="max-width: 20px; opacity: 0.5;">
+      <p style="font-size: 11px; color: gray;">Powered by 3Dtwins</p>
+    </a>
+  </div>
+
+  <!-- Contenedor para los modales dinámicos -->
+  <div id="modal-container"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cannon-es@0.18.0/build/cannon.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+
+
+ <script>
+   const modelData = [
+    {
+      url: 'ruta/a/modelo.gltf',
+      position: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 },
+      rotation: { x: 0, y: 0, z: 0 },
+      producto: {
+        nombreProducto: "Producto 1",
+        sku: "123456",
+        descripcion: "Descripción del producto 1",
+        peso: "1kg",
+        dimensiones: "10x10x10cm",
+        marca: "Marca 1",
+        linkCompra: "https://enlace/a/compra"
+      }
+    },
+    // Añadir más modelos si es necesario
+  ];
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  const loader = new THREE.GLTFLoader(); // Crea la instancia del loader
+
+  // Inicializa la variable models como un arreglo vacío
+  const models = [];
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix(); // Actualiza la matriz de proyección de la cámara
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  const mouse = new THREE.Vector2();
+  const raycaster = new THREE.Raycaster();
+
+  const audioListener = new THREE.AudioListener();
+  camera.add(audioListener);  // Añadimos el listener a la cámara
+ scene.background = new THREE.Color('#000000');
+  const audioLoader = new THREE.AudioLoader();
+  let sound = new THREE.Audio(audioListener); // Creamos un objeto de sonido
+
+  audioLoader.load('#', (buffer) => {
+    sound.setBuffer(buffer);
+    sound.setVolume(0.5); // Ajustamos el volumen del sonido
+  });
+  
+  let targetPosition = new THREE.Vector3(0, 10, 20); // Posición deseada de la cámara
+  let currentPosition = camera.position;
+
+  camera.position.lerp(targetPosition, 0.1); // Lerp suaviza el movimiento
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+ 
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  camera.position.set(0, 1, 4);
+
+  // Iluminación mejorada tipo estudio 📸
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambientLight);
+
+  const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.7);
+  directionalLight1.position.set(5, 10, 5);
+  directionalLight1.castShadow = true;
+  scene.add(directionalLight1);
+
+  const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.6);
+  directionalLight2.position.set(-5, 10, -5);
+  directionalLight2.castShadow = true;
+  scene.add(directionalLight2);
+
+  const directionalLight3 = new THREE.DirectionalLight(0xffffff, 0.5);
+  directionalLight3.position.set(0, 5, -10);
+  scene.add(directionalLight3);
+
+  const pointLight = new THREE.PointLight(0xffffff, 1.5, 10);
+  pointLight.position.set(0, 5, 5);
+  scene.add(pointLight);
+
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  
+  
+  
+   // Texturas
+  const textureLoader = new THREE.TextureLoader();
+  const textures = {
+    green: textureLoader.load('https://cdn.glitch.global/9c9f7b94-48b5-44ff-b25e-22846f8a7f18/singstitch01_2891.jpg?v=1725319432358'),
+    red: textureLoader.load('https://cdn.glitch.global/9c9f7b94-48b5-44ff-b25e-22846f8a7f18/48679571-6A85-415E-85A0-DF682A2C8D33.jpeg?v=1725580129225'),
+    blue: textureLoader.load('https://cdn.glitch.global/9c9f7b94-48b5-44ff-b25e-22846f8a7f18/Captura_de_Pantalla_2023-11-26_a_las_12.16.38-removebg-preview.png?v=1725362731319'),
+  };
+
+  
+
+  const modalContainer = document.getElementById("modal-container");
+
+  // Cargar los modelos y agregar modales
+  
+    loader.load("https://virtualshubs.github.io/personalizador/diaper_bags (2).glb", (gltf) => {
+      const modelObj = gltf.scene;
+      
+      
+      modelObj.position.set(-0.1, 1.6, -0.5);
+      modelObj.scale.set(0.02, 0.02, 0.02);
+      modelObj.rotation.set(-0.1, 0.3, 0);
+        
+      modelObj.userData.url = "https://virtualshubs.github.io/personalizador/diaper_bags (2).glb";
+      modelObj.userData.producto = {"nombreProducto":"Producto Sin Nombre","descripcion":"Sin Descripción","peso":"Sin Peso","dimensiones":"Sin Dimensiones","marca":"Sin Marca","sku":"Sin SKU"};
+      scene.add(modelObj);
+      
+
+      // Agregar el modelo al arreglo models
+      models.push(modelObj);
+      
+      
+      
+      
+      
+
+      // Crear modal dinámico con los datos del producto
+      const modal = document.createElement("div");
+      modal.id = "https://virtualshubs.github.io/personalizador/diaper_bags (2).glb-modal";  
+      modal.className = "info-modal";
+      modal.innerHTML = `
+        <button class="modal-close" onclick="document.getElementById('https://virtualshubs.github.io/personalizador/diaper_bags (2).glb-modal').style.display = 'none'">X</button>
+        <p><strong>Nombre:</strong> Producto Sin Nombre</p>
+        <p><strong>SKU:</strong> Sin SKU</p>
+        <p><strong>Descripción:</strong> Sin Descripción</p>
+        <p><strong>Peso:</strong> Sin Peso</p>
+        <p><strong>Dimensiones:</strong> Sin Dimensiones</p>
+        <p><strong>Marca:</strong> Sin Marca</p>
+        <div class="color-button-container">
+          <button class="button" onclick="changeMaterial('green', 'https://virtualshubs.github.io/personalizador/diaper_bags (2).glb')">Material demo 1</button>
+          <button class="button" onclick="changeMaterial('red', 'https://virtualshubs.github.io/personalizador/diaper_bags (2).glb')">Material demo 2</button>
+          <button class="button" onclick="changeMaterial('blue', 'https://virtualshubs.github.io/personalizador/diaper_bags (2).glb')">Material demo 3</button>
+        </div>
+        
+        <!-- Agregar código QR y link dinámico -->
+        <div id="qr-container-https://virtualshubs.github.io/personalizador/diaper_bags (2).glb" class="qr-container"></div>
+        <p><strong>Compra aquí:</strong> <a id="purchase-link-https://virtualshubs.github.io/personalizador/diaper_bags (2).glb" href="undefined" target="_blank">Comprar Producto</a></p>
+      `;
+
+      modalContainer.appendChild(modal);
+
+      // Generar QR
+      QRCode.toCanvas(document.getElementById('qr-container-' + 'https://virtualshubs.github.io/personalizador/diaper_bags (2).glb'), "undefined", function (error) {
+        if (error) console.error(error);
+      });
+    }, undefined, (error) => console.error("Error al cargar el modelo:", error));
+  
+
+
+
+
+
+
+
+
+
+  // Cambiar materiales
+  function changeMaterial(material, modelUrl) {
+    selectedMaterial = new THREE.MeshStandardMaterial({ 
+      map: textures[material],
+      side: THREE.DoubleSide
+    });
+
+    models.forEach(model => {
+      if (model.userData.url === modelUrl) {
+        model.traverse(child => {
+          if (child.isMesh) {
+            child.material = selectedMaterial;
+          }
+        });
+      }
+    });
+  }
+
+  let currentModal = null;
+
+  function onMouseClick(event) {
+    if (currentModal && currentModal.contains(event.target)) {
+      return;
+    }
+
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(models, true);
+
+    if (intersects.length > 0) {
+      let clickedModel = intersects[0].object;
+      while (!clickedModel.userData.url && clickedModel.parent) {
+        clickedModel = clickedModel.parent;
+      }
+      if (clickedModel.userData.url) {
+        const modal = document.getElementById(clickedModel.userData.url + "-modal");
+
+        sound.play();
+
+        if (currentModal === modal) {
+          modal.style.display = "none"; // Cerrar el modal
+          currentModal = null;
+        } else {
+          if (currentModal) {
+            currentModal.style.display = "none"; // Cerrar el modal anterior
+          }
+          modal.style.display = "block";
+          currentModal = modal;
+        }
+      }
+    }
+  }
+
+  window.addEventListener('click', onMouseClick, false);
+
+  // Movimiento básico con WASD
+  const keys = {};
+  window.addEventListener('keydown', (event) => keys[event.key] = true);
+  window.addEventListener('keyup', (event) => keys[event.key] = false);
+
+  function moveCharacter() {
+    if (keys["w"]) character.position.z -= 0.05;
+    if (keys["a"]) character.position.x -= 0.05;
+    if (keys["s"]) character.position.z += 0.05;
+    if (keys["d"]) character.position.x += 0.05;
+  }
+
+  function animate() {
+    moveCharacter();
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  }
+
+  animate();
+</script>
+
+
+</body>
+</html>
+
+
+
+
