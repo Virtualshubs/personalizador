@@ -1,0 +1,903 @@
+<!DOCTYPE html><html lang="es"><head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3D Twins NEO att avatar</title>
+    <link
+      rel="icon"
+      href="https://virtualshubs.github.io/personalizador/3dtwinslogo2025:2026.png"
+      type="image/x-icon"
+    />
+    <link rel="stylesheet" href="neo.css" /></head>
+    
+<style>body {
+  margin: 10;
+  font-family: "Orbitron", sans-serif;
+  background: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Input de carga de modelo */
+#modelLoader input {
+  display: block;
+  margin: 5px 0;
+}
+
+/* Contenedor principal del visor */
+#container {
+  width: 100vw;
+  height: 55vh;
+}
+
+/* Caja de respuesta */
+#responseBox {
+  z-index: 1000;
+  padding: 0.9rem 0.75rem;
+  background: #ffffff;
+  border-radius: 6px;
+  box-shadow: none;
+  font-size: 0.9rem;
+  color: #333333;
+  border: 1px solid #dddddd;
+  display: none;
+  margin: 30px;
+}
+
+/* Contenedor de chat */
+#chat-container {
+  border: 1px solid #143152;
+    border-radius: 26px;
+  top: 200px;
+  right: 10px;
+  position: fixed;
+  max-width: 220px;
+    height:100vh;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scale: 0.8;
+    max-height: 50vh; /* o cualquier altura deseada */
+  overflow-y: auto;
+  scrollbar-width: thin; /* Estilo del scroll en Firefox */
+  scrollbar-color: #00ffea transparent;
+}
+
+/* Mensajes del bot */
+.bot-message {
+  background: rgba(0, 0, 0, 0.6);
+  color: #00ffea;
+  padding: 12px 16px;
+  border-radius: 20px;
+  max-width: 80%;
+  box-shadow: 0 0 10px rgba(0, 255, 234, 0.6);
+  backdrop-filter: blur(8px);
+  align-self: flex-start;
+  animation: appear 0.3s ease-out;
+}
+
+/* Animación */
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Input del usuario */
+#userInput {
+  z-index: 1010;
+  padding: 0.2rem;
+  margin: 10px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  border-radius: 16px;
+  border: 1px solid #dddddd;
+  color: black;
+}
+
+/* Botón de inicio */
+#startBtn {
+  z-index: 1000;
+  margin-left: 20px;
+  padding: 10px;
+  background-color: white;
+  color: black;
+  border: 1px solid #dddddd;
+  cursor: pointer;
+  border-radius: 16px;
+}
+
+#startBtn:hover {
+  background-color: #143152;
+  color: white;
+}
+
+/* Contenedor de modelos */
+#contenedor-modelos {
+  z-index: 1010;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
+/* Estilo individual del modelo */
+.modelo-gafa {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: center;
+  width: 200px;
+}
+
+.modelo-gafa h3 {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.modelo-gafa iframe {
+  margin-bottom: 10px;
+  max-width: 100%;
+}
+
+/* ======= MEDIA QUERIES PARA MÓVILES ======= */
+@media (max-width: 600px) {
+  #container {
+    height: 40vh;
+  }
+
+  #userInput {
+    width: 90%;
+    font-size: 0.8rem;
+  }
+
+  #startBtn {
+    margin-left: 0;
+    width: 90%;
+    font-size: 1rem;
+  }
+
+  #chat-container {
+    right: 5px;
+    top: auto;
+    bottom: 10px;
+    scale: 0.8;
+    max-width: 95vw;
+    padding: 10px;
+  }
+
+  .bot-message {
+    max-width: 85%;
+    font-size: 0.85rem;
+  }
+
+  #contenedor-modelos {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .modelo-gafa {
+    width: 80%;
+  }
+}
+</style>
+
+
+
+    <body>
+    <div id="container"> <button id="startBtn" hidden>🗣️</button>
+     <input
+      id="userInput"
+      type="text"
+      placeholder="Escribe aquí tu consulta y Neo te ayudará..."/></div>
+    <div id="responseBox"></div>
+    <div id="chat-container"></div>
+    <p id="transcript" ></p>
+    <div id="chat-panel" style="display: none;"></div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+
+    <script >
+    
+let scene, camera, renderer, model, mixer;
+let modeloSeleccionado = null;
+let iframeUrl = null;
+let currentAudio = null;
+let audioUrl;
+let clock = new THREE.Clock();
+
+function init() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x1e1e1e);
+  camera = new THREE.PerspectiveCamera(
+    65,
+    window.innerWidth / window.innerHeight,
+    0.01,
+    1000
+  );
+
+  camera.position.set(0, 1, 3);
+  window.addEventListener("resize", function () {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height);
+  });
+  const container = document.getElementById("container");
+  // Crear una luz de área para iluminación más difusa y uniforme
+  const rectLight = new THREE.RectAreaLight(0xffffff, 2, 10, 10);
+  rectLight.position.set(0, 2, 0);
+  rectLight.lookAt(0, 0, 0);
+  scene.add(rectLight);
+
+  // Crear el renderizador
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  container.appendChild(renderer.domElement);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.25;
+  controls.minDistance = 2;
+  controls.maxDistance = 18;
+  controls.screenSpacePanning = false;
+  controls.enablePan = false;
+  controls.maxPolarAngle = Math.PI / 2;
+
+  const pixelRatio = window.devicePixelRatio;
+  renderer.setPixelRatio(pixelRatio);
+
+  const ambientLight = new THREE.AmbientLight(0x404040, 1);
+  scene.add(ambientLight);
+
+  // Añadir luz puntual para un enfoque más dinámico
+  const pointLight = new THREE.PointLight(0xffffff, 1, 2, 2);
+  pointLight.position.set(0, 3, 0);
+  pointLight.castShadow = true;
+  scene.add(pointLight);
+
+  // Añadir una luz direccional para iluminar el modelo
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+  directionalLight.position.set(5, 5, 5).normalize();
+  directionalLight.castShadow = true;
+  scene.add(directionalLight);
+}
+
+loadEnvironment("");
+
+function loadEnvironment(url) {
+  const loader = new THREE.GLTFLoader();
+  loader.load(
+    url,
+    (gltf) => {
+      const environment = gltf.scene;
+      environment.scale.set(4, 4, 4); // Ajusta si es muy grande o pequeño
+      environment.position.set(0, -1, 0); // Alinea con el modelo si hace falta
+      scene.add(environment);
+    },
+    undefined,
+    function (error) {
+      console.error("Error al cargar el entorno:", error);
+    }
+  );
+}
+
+const externalAnimations = {
+  talk: {
+    url: "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/neo_talking.glb?v=1746706574629",
+    clip: null,
+    action: null,
+    loaded: false,
+  },
+  idle: {
+    url: "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/neo_idle.glb?v=1746706366733",
+    clip: null,
+    action: null,
+    loaded: false,
+  },
+};
+
+function loadModel(url) {
+  if (model && model.url === url) {
+    // Si el modelo ya ha sido cargado, no lo volvemos a cargar.
+    return;
+  }
+
+  const loader = new THREE.GLTFLoader();
+  loader.load(
+    url,
+    (gltf) => {
+      // Elimina el modelo anterior si existe
+      if (model) {
+        scene.remove(model);
+      }
+
+      // Detiene las animaciones del modelo anterior
+      if (mixer) {
+        mixer.stopAllAction();
+        mixer = null;
+      }
+
+      model = gltf.scene;
+      model.url = url;
+      model.scale.set(2, 2, 2);
+      model.position.set(0, -1, 0);
+
+      // Si el modelo tiene animaciones, las reproducimos
+      if (gltf.animations && gltf.animations.length > 0) {
+        mixer = new THREE.AnimationMixer(model);
+        gltf.animations.forEach((clip) => {
+          mixer.clipAction(clip).play();
+        });
+      }
+
+      scene.add(model);
+    },
+
+    undefined,
+    function (error) {
+      console.error("Error al cargar el modelo:", error);
+    }
+  );
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  if (mixer) {
+    mixer.update(0.01);
+  }
+  renderer.render(scene, camera);
+}
+
+// Inicializar la escena
+init();
+loadModel(
+  "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/neo_idle.glb?v=1746706366733"
+);
+
+animate();
+
+// Esperar a que las voces estén cargadas
+let voicesReady = false;
+speechSynthesis.onvoiceschanged = () => {
+  voicesReady = true;
+};
+
+function speak(text) {
+  speechSynthesis.cancel(); // Detener cualquier voz anterior
+  if (speechSynthesis.speaking) {
+    speechSynthesis.cancel();
+  }
+  const utterance = new SpeechSynthesisUtterance(text);
+  const voices = speechSynthesis.getVoices();
+  const selectedVoice = voices.find(
+    (voice) => voice.name.includes("Google") && voice.lang === "es-ES"
+  );
+  if (selectedVoice) utterance.voice = selectedVoice;
+
+  utterance.lang = "es-ES";
+  utterance.rate = 1;
+  utterance.pitch = 1;
+  utterance.volume = 1;
+
+  // Calcular la duración del audio
+  const wordsPerMinute = 160;
+  const words = text.split(" ").length;
+  const durationInSeconds = (words / wordsPerMinute) * 60;
+
+  if (mixer && model) {
+    const talkAction = mixer.clipAction("talk");
+    const idleAction = mixer.clipAction("idle");
+
+    if (idleAction) idleAction.stop();
+    if (talkAction) {
+      talkAction.reset().setLoop(THREE.LoopOnce, 1).play();
+    }
+
+    utterance.onend = () => {
+      if (talkAction) {
+        talkAction.stop();
+      }
+      if (idleAction) {
+        idleAction.reset().play();
+      }
+    };
+
+    // Sincronizar la duración de la animación con la duración del texto
+    setTimeout(() => {
+      if (talkAction) {
+        talkAction.stop();
+      }
+      if (idleAction) {
+        idleAction.reset().play();
+      }
+    }, durationInSeconds * 1000); // Convertir a milisegundos
+  }
+
+  speechSynthesis.speak(utterance);
+}
+
+window.SpeechRecognition =
+  window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if ("SpeechRecognition" in window) {
+  const recognition = new SpeechRecognition();
+  recognition.lang = "es-ES";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  function startListening() {
+    recognition.start();
+    console.log("🎤 Escuchando...");
+  }
+
+  // Cuando se recibe el resultado
+  recognition.onresult = function (event) {
+    let transcript = "";
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      transcript += event.results[i][0].transcript;
+    }
+    console.log("Texto detectado: ", transcript);
+    document.getElementById("userInput").value = transcript;
+  };
+
+  // Cuando termina la escucha
+  recognition.onend = function () {
+    console.log("⏹ Reconocimiento de voz finalizado");
+
+    // Simula pulsación de Enter
+    const event = new KeyboardEvent("keydown", {
+      key: "Enter",
+      keyCode: 13,
+      code: "Enter",
+      which: 13,
+      bubbles: true,
+    });
+    document.getElementById("userInput").dispatchEvent(event);
+  };
+
+  // Manejo de errores
+  recognition.onerror = function (event) {
+    console.error("Error en reconocimiento de voz:", event.error);
+  };
+
+  // Botón para iniciar escucha
+  document.getElementById("startBtn").addEventListener("click", startListening);
+} else {
+  console.log(
+    "La API de reconocimiento de voz no está disponible en este navegador."
+  );
+}
+
+document
+  .getElementById("userInput")
+  .addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+      const userInput = this.value.trim().toLowerCase();
+      let response = `Hola soy Neo, me encantaría ayudarte con "${userInput}". ¿Puedes especificar un poco más?`;
+      const respuestasPersonalizadas = [
+        {
+          claves: ["gafas", "gafas de sol", "gafas de oficina"],
+          respuesta:
+            "Aquí tienes nuestras opciones de gafas. ¿Te gustaría ver más detalles?",
+          modelo:
+            "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/gafas%20last.glb?v=1748567231234",
+          urlBase: "https://www.virtualshubs.com",
+      
+        },
+        {
+          claves: [
+            "mapa",
+            "mapa 3D",
+            "mapas interactivos",
+            "mapas eventos",
+            "mapas",
+          ],
+          respuesta:
+            "Aquí tienes nuestras opciones de mapas. ¿Te gustaría ver más detalles?",
+          modelo:
+            "https://cdn.glitch.me/09e124df-e926-450f-9abf-9749b4788932/full_gameready_city_buildings_retextured.glb?v=1746833836694",
+          urlBase: "www.virtualshubs.com",
+        },
+        {
+          claves: [
+            "avatar",
+            "avatar atención al cliente",
+            "avatar personalizado",
+            "mi avatar",
+            "quiero mi avatar",
+            "crear avatar",
+          ],
+          respuesta:
+            "Si eres usuario enterprise puedes crear tu propio avatar con nuestro editor 3d twins. Si neccesitas más información o tienes un proyecto conplejo, puedes solicitar una consultoría técnica con nuestro equipo y te daremos la mejor solución para personalizar tu avatar.",
+          modelo:
+            "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/neo_talking.glb?v=1746706574629",
+        },
+        {
+          claves: [
+            "bailar",
+            "bailas",
+            "baile",
+            "dance",
+            "fiesta",
+            "bailamos",
+            "Sabes bailar",
+            "que más sabes hacer",
+          ],
+          respuesta:
+            "¡No sé como dudabas si podía bailar! ¡Tengo los mejores pasos de la pista! ¿Qué más quieres hacer?",
+          modelo:
+            "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/neo_dancing.glb?v=1746706973495",
+          audio:
+            "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/Bailar.mp3?v=1746717681060",
+        },
+        {
+          claves: [
+            "consultoría",
+            "consultoria",
+            "cita",
+            "contacto",
+            "asistencia",
+            "hablar con",
+             "reunión",
+            "reunion",
+          ],
+          respuesta:
+            "Puedes agendar una cita con nuestro calendario web o si prefieres hacer tu consulta por email puedes hacernoslo llegar en info@virtualshubs.com",
+          modelo:
+            "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/neo_talking.glb?v=1746706574629",
+        },
+        {
+          claves: [
+            "servicios",
+            "servicio",
+            "publicidad interactiva",
+            "diseño a medida",
+            "agencia interactiva",
+            "publicidad",
+            "Agencia",
+          ],
+          respuesta:
+            "virtualshubs es una agencia interactiva especializada en sistemas interactivos 3d para web, damos servicios a otras agencias o empresas que buscan maximizar sus ventas y comunicación, prueba a decir mapa y te daré un ejemplo",
+          modelo:
+            "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/neo_talking.glb?v=1746706574629",
+        },
+        {
+          claves: [
+            "configurador",
+            "configurador 3d",
+            "productos personalizados",
+            "tienda 3d",
+            "desarrollo a medida",
+          ],
+          respuesta:
+            "Para desarrollos a medida de pantallas interactivas de producto, tiendas 3d online y sistemas de venta conectados a tu ecommerce puedes ponerte en contacto con nosotros a través de nuestro email info@virtualshubs.com",
+          modelo:
+            "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/neo_talking.glb?v=1746706574629",
+        },
+        {
+          claves: [
+            "atención al cliente",
+            "cuál es tu nombre",
+            "ayudar",
+            "esto que es",
+            "que puedes hacer",
+            "ayuda",
+            "duda",
+            "dudas",
+          ],
+          respuesta:
+            "¿sobre qué tema te gustaría recibir información? Prueba a preguntar por nuestros servicios, consulta sobre nuestro editor 3d, pedir una consultoría o lo que necesites.",
+          modelo:
+            "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/neo_talking.glb?v=1746706574629",
+        },
+        {
+          claves: [
+            "3D Twins",
+            "editor",
+            "software",
+            "editor 3d",
+            "virtuals hubs",
+            "pantallas interactivas",
+            "motor de renderizado web",
+          ],
+
+          respuesta:
+            "3D Twins es un proyecto desarrollado por Virtualshubs para ayudar a crear contenido interactivo para web sin código. Reduce semanas de desarrollo a minutos. Para usuarios pro puedes licenciar tus creaciones y Escalar sin límites. ¿Quieres más información sobre el acceso?.",
+          modelo:
+            "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/neo_talking.glb?v=1746706574629",
+        },
+        {
+          claves: ["acceso", "usuarios", "planes", "suscriptción"],
+
+          respuesta:
+            "Para tener acceso a nuestro editor 3d para publicidad interactiva, necesitas estar dado de alta como Creador, para ello, tienes dos niveles de asiento.El acceso Pro para pantallas comerciales y Enterprise para crear proyectos bajo licencia, según tus necesidades.",
+          modelo:
+            "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/neo_talking.glb?v=1746706574629",
+        },
+        {
+          claves: [
+            "producto",
+            "camiseta",
+            "zapato",
+            "gorro",
+            "catálogo",
+            "comprar",
+          ],
+          respuesta:
+            "¿Te interesa algún producto en particular? Puedo ayudarte a encontrarlo.Prueba a decir el nombre como por ejemplo gafas y te mostraré nuestros modelos. También tenemos productos personalizados a medida ¿Te interesaría saber más?",
+          modelo:
+            "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/neo_talking.glb?v=1746706574629",
+        },
+        {
+          claves: ["quién eres", "presentación", "acerca de ti", "ola"],
+          respuesta:
+            "Soy Neo, tu asistente virtual 3D. Estoy aquí para ayudarte con cualquier consulta relacionada con nuestros productos y servicios. ¿Sobre qué tema necesitas información",
+          modelo:
+            "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/neo_talking.glb?v=1746706574629",
+        },
+        {
+          claves: ["chiste", "cuéntame un chiste", "broma", "bromas", "humor"],
+          respuesta: "¿Qué es una gamba tirando piedras? Una gamberra.",
+          modelo:
+            "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/neo_talking.glb?v=1746706574629",
+        },
+        {
+          claves: ["sandra", "fundadora", "ceo", "creadora", "creador"],
+          respuesta:
+            "¡Vaya! ¡Has dado con San! ¡nuestra fundadora! ¿te gustaría hablar con ella?.",
+          modelo:
+            "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/neo_talking.glb?v=1746706574629",
+        },
+        {
+          claves: [
+            "panel interactivo",
+            "panel animado",
+            "botón 3d",
+            "botón interactivo",
+            "mesh interactivo",
+            "caja giratoria",
+            "botones que pulsan",
+            "panel que se abre",
+            "cubo que gira",
+            "interacción mesh",
+          ],
+          respuesta:
+            "Aquí tienes un ejemplo de un panel interactivo integrado directamente como un mesh. Al hacer clic, el botón se anima y despliega un mensaje. ¿Te gustaría algo parecido para tu proyecto?",
+          modelo:
+            "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/neo_talking.glb?v=1746706574629",
+        },
+      ];
+
+      let modeloSeleccionado = null;
+      for (const item of respuestasPersonalizadas) {
+        if (item.claves.some((palabra) => userInput.includes(palabra))) {
+          response = item.respuesta;
+          modeloSeleccionado = item.modelo;
+          iframeUrl = item.urlBase + encodeURIComponent(userInput);
+          audioUrl = item.audio;
+          break;
+        }
+      }
+
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+      }
+
+      if (audioUrl) {
+        currentAudio = new Audio(audioUrl);
+        currentAudio.play();
+      } else {
+        currentAudio = null; // para evitar que se repita el anterior
+        speak(response);
+      }
+
+      // Cambiar el modelo si se detectó uno diferente
+      if (modeloSeleccionado) {
+        loadModel(modeloSeleccionado);
+      }
+
+      showBotResponse(response);
+      playAnimation("idle");
+      showPanel(response);
+
+      if (mixer && model) {
+        const idleAction = mixer.clipAction("idle");
+        if (idleAction) {
+          idleAction.reset().play(); // Reestablecer y reproducir la animación "idle"
+        }
+      }
+
+      this.value = ""; // Limpiar input después de procesar
+    }
+  });
+
+function showBotResponse(message) {
+  const chatContainer = document.getElementById("chat-container");
+  if (chatContainer) {
+    const messageDiv = document.createElement("div");
+    messageDiv.textContent = message;
+    messageDiv.classList.add("bot-message");
+    chatContainer.appendChild(messageDiv);
+  } else {
+    console.log("Bot:", message);
+  }
+}
+
+recognition.onend = async function () {
+  console.log("Reconocimiento finalizado.");
+
+  const modelUrl =
+    "https://cdn.glitch.global/09e124df-e926-450f-9abf-9749b4788932/neo_idle.glb?v=1746706366733"; // <--- Reemplaza esto
+
+  try {
+    // Cargar el modelo desde la URL
+    const gltf = await loadModelFromURL(modelUrl);
+
+    // Añadir el modelo a la escena si es necesario
+    scene.add(gltf.scene);
+
+    model = gltf.scene;
+    mixer = new THREE.AnimationMixer(model);
+
+    // Reproducir animación "idle" si existe
+    const idleAction = mixer.clipAction(
+      gltf.animations.find((a) => a.name === "idle")
+    );
+    if (idleAction) {
+      idleAction.reset().play();
+      showBotResponse("Animación 'idle' reproducida.");
+    } else {
+      showBotResponse("No se encontró la animación 'idle'.");
+    }
+  } catch (error) {
+    console.error("Error cargando el modelo:", error);
+    showBotResponse("Hubo un error al cargar la animación.");
+  }
+};
+
+function playAnimation(nombreAnimacion) {
+  if (mixer && model && nombreAnimacion) {
+    const clip = THREE.AnimationClip.findByName(mixer._clips, nombreAnimacion);
+    if (clip) {
+      const action = mixer.clipAction(clip);
+      mixer.stopAllAction(); // Detiene cualquier animación previa
+      action.reset().setLoop(THREE.LoopOnce, 1).play();
+    } else {
+      console.warn(`Animación "${nombreAnimacion}" no encontrada.`);
+    }
+  }
+}
+
+const panel = document.getElementById("chat-panel");
+panel.innerText = response;
+panel.style.display = "block";
+
+function showPanel(responseText) {
+  const existingPanel = document.getElementById("chat-panel");
+  if (existingPanel) {
+    existingPanel.innerText = responseText;
+    return;
+  }
+
+  const panel = document.createElement("div");
+  panel.id = "chat-panel";
+  panel.innerText = responseText;
+  panel.style.position = "absolute";
+  panel.style.top = "100px";
+  panel.style.left = "20px";
+  panel.style.padding = "12px";
+  panel.style.background = "rgba(255, 255, 255, 0.95)";
+  panel.style.border = "1px solid #ccc";
+  panel.style.borderRadius = "8px";
+  panel.style.zIndex = 1000;
+  panel.style.maxWidth = "300px";
+  document.body.appendChild(panel);
+}
+
+let touchStartX = 0;
+let touchStartY = 0;
+
+renderer.domElement.addEventListener("touchstart", (event) => {
+  touchStartX = event.touches[0].clientX;
+  touchStartY = event.touches[0].clientY;
+});
+
+renderer.domElement.addEventListener("touchmove", (event) => {
+  const deltaX = event.touches[0].clientX - touchStartX;
+  const deltaY = event.touches[0].clientY - touchStartY;
+
+  // Mover la cámara o el objeto basado en los movimientos táctiles
+  camera.rotation.y += deltaX * 0.01; // Rotar cámara en X
+  camera.rotation.x += deltaY * 0.01; // Rotar cámara en Y
+
+  touchStartX = event.touches[0].clientX;
+  touchStartY = event.touches[0].clientY;
+});
+
+renderer.domElement.addEventListener("touchstart", (event) => {
+  // Obtener las coordenadas táctiles
+  const touch = event.touches[0];
+  const x = (touch.clientX / window.innerWidth) * 2 - 1;
+  const y = -(touch.clientY / window.innerHeight) * 2 + 1;
+
+  // Crear un rayo para detectar los objetos tocados
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2(x, y);
+  raycaster.setFromCamera(mouse, camera);
+
+  // Intersectar objetos
+  const intersects = raycaster.intersectObjects(scene.children);
+
+  if (intersects.length > 0) {
+    // Ejemplo: Cambiar el color del objeto tocado
+    intersects[0].object.material.color.set(0xff0000);
+  }
+});
+
+if (iframeUrl) {
+  const iframe = document.createElement("iframe");
+  iframe.src = iframeUrl;
+  iframe.style.width = "400px";
+  iframe.style.height = "300px";
+  iframe.style.position = "absolute";
+  iframe.style.top = "150px";
+  iframe.style.left = "20px";
+  iframe.style.border = "1px solid #ccc";
+  iframe.style.zIndex = 100;
+  document.body.appendChild(iframe);
+}
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+renderer.domElement.addEventListener("click", (event) => {
+  // Normalizar coordenadas
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(scene.children, true);
+
+  for (let i = 0; i < intersects.length; i++) {
+    const clickedObject = intersects[i].object;
+    if (clickedObject.name.includes("boton_clic")) {
+      const action = mixer.clipAction("abrirPanel");
+      if (action) {
+        action.reset().play();
+      }
+      if (audioUrl) {
+        const clickSound = new Audio(audioUrl);
+        clickSound.play();
+      }
+      break;
+    }
+  }
+});
+
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / (window.innerHeight * 0.95);
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight * 0.95);
+});
+// Asegura que las voces se cargan correctamente
+window.speechSynthesis.onvoiceschanged = () => {
+  // Esto garantiza que `getVoices()` devuelva las voces reales
+  speechSynthesis.getVoices();
+};
+
+</script>
+
+</body></html>
