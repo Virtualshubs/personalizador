@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Three.js Dolly + Primera Persona</title>
+  <title>Three.js Dolly + Teclado</title>
   <style>
     body {
       margin: 0;
@@ -123,6 +123,24 @@
       btn.addEventListener('touchend', () => directions[dir] = false);
     });
 
+    // Teclado
+    const keyMap = {
+      ArrowUp: 'forward',
+      ArrowDown: 'backward',
+      ArrowLeft: 'left',
+      ArrowRight: 'right'
+    };
+
+    document.addEventListener('keydown', (e) => {
+      const dir = keyMap[e.key];
+      if (dir) directions[dir] = true;
+    });
+
+    document.addEventListener('keyup', (e) => {
+      const dir = keyMap[e.key];
+      if (dir) directions[dir] = false;
+    });
+
     // Cámara dinámica
     let isThirdPerson = true;
     const cameraOffset = new THREE.Vector3(0, 5, 10); // Tercera persona
@@ -132,27 +150,25 @@
       controls.enabled = isThirdPerson; // Solo activa OrbitControls en tercera
     });
 
-    // Posición inicial cámara
+    // Posición inicial
     camera.position.copy(sphere.position).add(cameraOffset);
 
-    // Animación
     function animate() {
       requestAnimationFrame(animate);
 
-      // Movimiento de la esfera
+      // Movimiento
       if (directions.forward) sphere.position.z -= speed;
       if (directions.backward) sphere.position.z += speed;
       if (directions.left) sphere.position.x -= speed;
       if (directions.right) sphere.position.x += speed;
 
+      // Cámara
       if (isThirdPerson) {
-        // Tercera persona: cámara sigue detrás
         const targetPos = new THREE.Vector3().copy(sphere.position).add(cameraOffset);
         camera.position.lerp(targetPos, 0.1);
         camera.lookAt(sphere.position);
       } else {
-        // Primera persona: cámara en la esfera
-        const offset = new THREE.Vector3(0, 1.2, 0); // altura ojos
+        const offset = new THREE.Vector3(0, 1.2, 0);
         camera.position.copy(sphere.position).add(offset);
         camera.lookAt(sphere.position.clone().add(new THREE.Vector3(0, 1.2, -1)));
       }
@@ -163,7 +179,6 @@
 
     animate();
 
-    // Resize
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
