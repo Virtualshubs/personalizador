@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Simps UI - Escenario 3D</title>
+  <style>
+    body {
+      margin: 0;
+      background: #222;
+      font-family: 'Orbitron', sans-serif;
+      overflow: hidden;
+    }
+    #main-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+      justify-content: center;
+      position: relative;
+    }
+    #stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 60vh;
+      width: 100vw;
+      position: relative;
+    }
+    #game-ui {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100vw;
+      height: 100px;
+      background: rgba(30,40,60,0.92);
+      border-top: 3px solid #44c7f4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      z-index: 10;
+    }
+    .ui-btn {
+      padding: 14px 28px;
+      margin: 0 8px;
+      background: #44c7f4;
+      color: #fff;
+      border: none;
+      border-radius: 18px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+      box-shadow: 0 2px 8px #000a;
+    }
+    .ui-btn:hover {
+      background: #2493c1;
+    }
+    #msg {
+      position: absolute;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      color: #333;
+      font-size: 1.1rem;
+      padding: 12px 24px;
+      border-radius: 14px;
+      box-shadow: 0 2px 10px #0003;
+      z-index: 20;
+      display: none;
+    }
+    @media (max-width: 700px) {
+      #stage { height: 45vh;}
+      #game-ui { height: 68px; }
+      .ui-btn { font-size: 1rem; padding: 8px 14px;}
+    }
+  </style>
+</head>
+<body>
+  <div id="main-container">
+    <div id="stage"></div>
+    <div id="msg">¡Has caído! Reiniciando...</div>
+    <div id="game-ui">
+      <button class="ui-btn" id="btn-left">⬅️</button>
+      <button class="ui-btn" id="btn-up">⬆️</button>
+      <button class="ui-btn" id="btn-down">⬇️</button>
+      <button class="ui-btn" id="btn-right">➡️</button>
+      <button class="ui-btn" id="btn-restart">🔄 Reiniciar</button>
+    </div>
+  </div>
+
+  <!-- Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Cannon-es Physics -->
+  <script src="https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"></script>
+  <script>
+    // --- SETUP ---
+    let scene, camera, renderer, controls;
+    let sphereMesh, planeMesh;
+    let world, sphereBody, planeBody;
+    let stage = document.getElementById('stage');
+    let msg = document.getElementById('msg');
+    let sphereStart = { x: 0, y: 1.5, z: 0 };
+    let planeSize = 8;
+
+    function init3D() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x253050);
+
+      camera = new THREE.PerspectiveCamera(55, stage.clientWidth / stage.clientHeight, 0.1, 100);
+      camera.position.set(0, 8, 10);
+      controls = new THREE.OrbitControls(camera, stage);
+      controls.enableDamping = true;
+      controls.target.set(0, 0.7, 0);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(stage.clientWidth, stage.clientHeight);
+      stage.appendChild(renderer.domElement);
+
+      // --- LIGHTING ---
+      let ambient = new THREE.AmbientLight(0xffffff, 0.70);
+      scene.add(ambient);
+
+      let spot = new THREE.SpotLight(0xffffff, 1.1, 25, Math.PI/5, 0.5, 2);
+      spot.position.set(5, 10, 5);
+      spot.castShadow = true;
+      scene.add(spot);
+
+      let dir = new THREE.DirectionalLight(0xafefff, 0.3);
+      dir.position.set(-7, 7, -5);
+      scene.add(dir);
+
+      // --- PLANE ---
+      let planeGeo = new THREE.BoxGeometry(planeSize, 0.2, planeSize);
+      let planeMat = new THREE.MeshPhongMaterial({ color: 0x44c7f4, shininess: 70 });
+      planeMesh = new THREE.Mesh(planeGeo, planeMat);
+      planeMesh.position.y = 0;
+      planeMesh.receiveShadow = true;
+      scene.add(planeMesh);
+
+      // --- SPHERE ---
+      let sphereGeo = new THREE.SphereGeometry(0.5, 32, 32);
+      let sphereMat = new THREE.MeshPhongMaterial({ color: 0xffdf44, shininess: 120 });
+      sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+      sphereMesh.position.set(sphereStart.x, sphereStart.y, sphereStart.z);
+      sphereMesh.castShadow = true;
+      scene.add(sphereMesh);
+    }
+
+    // --- PHYSICS ---
+    function initPhysics() {
+      world = new CANNON.World({
+        gravity: new CANNON.Vec3(0, -9.82, 0)
+      });
+
+      planeBody = new CANNON.Body({
+        type: CANNON.Body.STATIC,
+        shape: new CANNON.Box(new CANNON.Vec3(planeSize/2, 0.1, planeSize/2)),
+        position: new CANNON.Vec3(0, 0, 0)
+      });
+      world.addBody(planeBody);
+
+      sphereBody = new CANNON.Body({
+        mass: 1,
+        shape: new CANNON.Sphere(0.5),
+        position: new CANNON.Vec3(sphereStart.x, sphereStart.y, sphereStart.z),
+        linearDamping: 0.35,
+        angularDamping: 0.2
+      });
+      world.addBody(sphereBody);
+    }
+
+    // --- GAME LOGIC ---
+    function resetScene() {
+      sphereBody.position.set(sphereStart.x, sphereStart.y, sphereStart.z);
+      sphereBody.velocity.setZero();
+      sphereBody.angularVelocity.setZero();
+      sphereBody.quaternion.set(0,0,0,1);
+      hideMsg();
+    }
+
+    function showMsg(txt) {
+      msg.innerText = txt;
+      msg.style.display = 'block';
+      setTimeout(hideMsg, 1200);
+    }
+    function hideMsg() { msg.style.display = 'none'; }
+
+    // --- CONTROLS ---
+    function moveSphere(dx, dz) {
+      let force = 8;
+      sphereBody.velocity.x += dx*force;
+      sphereBody.velocity.z += dz*force;
+    }
+
+    document.getElementById('btn-left').onclick = () => moveSphere(-0.15, 0);
+    document.getElementById('btn-right').onclick = () => moveSphere(0.15, 0);
+    document.getElementById('btn-up').onclick = () => moveSphere(0, -0.15);
+    document.getElementById('btn-down').onclick = () => moveSphere(0, 0.15);
+    document.getElementById('btn-restart').onclick = () => resetScene();
+
+    // --- ANIMATION LOOP ---
+    function animate() {
+      controls.update();
+      world.step(1/60);
+
+      // Update mesh positions from physics bodies
+      sphereMesh.position.copy(sphereBody.position);
+      sphereMesh.quaternion.copy(sphereBody.quaternion);
+
+      // Check if sphere fell off plane
+      if (sphereBody.position.y < -2) {
+        showMsg('¡Has caído! Reiniciando...');
+        setTimeout(resetScene, 1200);
+      }
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+
+    // --- RESPONSIVE ---
+    window.addEventListener('resize', () => {
+      camera.aspect = stage.clientWidth / stage.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(stage.clientWidth, stage.clientHeight);
+    });
+
+    // --- RUN ---
+    init3D();
+    initPhysics();
+    animate();
+  </script>
+</body>
+</html>
