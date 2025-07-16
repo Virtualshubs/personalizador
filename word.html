@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Three.js Esfera Interactiva</title>
+  <title>Three.js Movimiento Fluido + OrbitControls</title>
   <style>
     body {
       margin: 0;
@@ -15,10 +15,6 @@
       width: 100vw;
       height: 100vh;
       position: relative;
-    }
-
-    canvas {
-      display: block;
     }
 
     .controls {
@@ -41,14 +37,15 @@
 <body>
   <div id="canvas-container"></div>
   <div class="controls">
-    <button onclick="move('forward')">⬆️</button>
-    <button onclick="move('left')">⬅️</button>
-    <button onclick="move('backward')">⬇️</button>
-    <button onclick="move('right')">➡️</button>
+    <button data-dir="forward">⬆️</button>
+    <button data-dir="left">⬅️</button>
+    <button data-dir="backward">⬇️</button>
+    <button data-dir="right">➡️</button>
   </div>
 
   <script type="module">
     import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
@@ -56,76 +53,87 @@
     // Cámara
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
     camera.position.set(0, 5, 10);
-    camera.lookAt(0, 0, 0);
 
     // Renderizador
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(renderer.domElement);
 
-    // Luz tipo estudio
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-    scene.add(ambientLight);
+    // Controles de órbita
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.target.set(0, 1, 0);
 
+    // Luz tipo estudio
+    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
     const keyLight = new THREE.DirectionalLight(0xffffff, 0.6);
     keyLight.position.set(5, 10, 5);
     scene.add(keyLight);
-
     const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
     fillLight.position.set(-5, 10, -5);
     scene.add(fillLight);
 
-    // Plano negro
-    const planeGeometry = new THREE.PlaneGeometry(50, 50);
-    const planeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
-    const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+    // Suelo
+    const plane = new THREE.Mesh(
+      new THREE.PlaneGeometry(50, 50),
+      new THREE.MeshStandardMaterial({ color: 0x000000 })
+    );
     plane.rotation.x = -Math.PI / 2;
     scene.add(plane);
 
-    // Esfera "personaje"
-    const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
-    const sphereMaterial = new THREE.MeshStandardMaterial({ color: 0x00ffff });
-    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    // Esfera personaje
+    const sphere = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 32, 32),
+      new THREE.MeshStandardMaterial({ color: 0x00ffff })
+    );
     sphere.position.y = 1;
     scene.add(sphere);
 
-    // Movimiento
-    function move(direction) {
-      const step = 0.3;
-      switch (direction) {
-        case 'forward':
-          sphere.position.z -= step;
-          break;
-        case 'backward':
-          sphere.position.z += step;
-          break;
-        case 'left':
-          sphere.position.x -= step;
-          break;
-        case 'right':
-          sphere.position.x += step;
-          break;
-      }
-    }
+    // Movimiento fluido
+    const directions = {
+      forward: false,
+      backward: false,
+      left: false,
+      right: false
+    };
 
-    // Loop de renderizado
+    // Escuchar los botones
+    const buttons = document.querySelectorAll('.controls button');
+    buttons.forEach(btn => {
+      const dir = btn.getAttribute('data-dir');
+      btn.addEventListener('mousedown', () => directions[dir] = true);
+      btn.addEventListener('mouseup', () => directions[dir] = false);
+      btn.addEventListener('mouseleave', () => directions[dir] = false); // por si suelta fuera
+      btn.addEventListener('touchstart', e => {
+        e.preventDefault();
+        directions[dir] = true;
+      }, { passive: false });
+      btn.addEventListener('touchend', () => directions[dir] = false);
+    });
+
+    // Animación
+    const speed = 0.05;
+
     function animate() {
       requestAnimationFrame(animate);
+
+      if (directions.forward) sphere.position.z -= speed;
+      if (directions.backward) sphere.position.z += speed;
+      if (directions.left) sphere.position.x -= speed;
+      if (directions.right) sphere.position.x += speed;
+
+      controls.update();
       renderer.render(scene, camera);
     }
 
     animate();
 
-    // Responsividad
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
-
-    // Hacemos accesible la función move al HTML
-    window.move = move;
   </script>
 </body>
 </html>
-
