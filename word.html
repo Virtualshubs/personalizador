@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Three.js Movimiento Fluido + OrbitControls</title>
+  <title>Movimiento fluido + OrbitControls (sin módulos)</title>
   <style>
     body {
       margin: 0;
@@ -43,38 +43,42 @@
     <button data-dir="right">➡️</button>
   </div>
 
-  <script type="module">
-    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+  <!-- ✅ Three.js r134 clásica -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
+  <!-- ✅ OrbitControls compatible r134 -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
 
+  <script>
     const container = document.getElementById('canvas-container');
+
     const scene = new THREE.Scene();
 
-    // Cámara
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
     camera.position.set(0, 5, 10);
 
-    // Renderizador
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(renderer.domElement);
 
-    // Controles de órbita
-    const controls = new OrbitControls(camera, renderer.domElement);
+    // Orbit Controls
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.target.set(0, 1, 0);
 
-    // Luz tipo estudio
-    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-    const keyLight = new THREE.DirectionalLight(0xffffff, 0.6);
-    keyLight.position.set(5, 10, 5);
-    scene.add(keyLight);
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
-    fillLight.position.set(-5, 10, -5);
-    scene.add(fillLight);
+    // Luces tipo estudio
+    const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambient);
 
-    // Suelo
+    const light1 = new THREE.DirectionalLight(0xffffff, 0.6);
+    light1.position.set(5, 10, 5);
+    scene.add(light1);
+
+    const light2 = new THREE.DirectionalLight(0xffffff, 0.3);
+    light2.position.set(-5, 10, -5);
+    scene.add(light2);
+
+    // Suelo negro
     const plane = new THREE.Mesh(
       new THREE.PlaneGeometry(50, 50),
       new THREE.MeshStandardMaterial({ color: 0x000000 })
@@ -82,7 +86,7 @@
     plane.rotation.x = -Math.PI / 2;
     scene.add(plane);
 
-    // Esfera personaje
+    // Esfera
     const sphere = new THREE.Mesh(
       new THREE.SphereGeometry(1, 32, 32),
       new THREE.MeshStandardMaterial({ color: 0x00ffff })
@@ -98,13 +102,12 @@
       right: false
     };
 
-    // Escuchar los botones
     const buttons = document.querySelectorAll('.controls button');
     buttons.forEach(btn => {
       const dir = btn.getAttribute('data-dir');
       btn.addEventListener('mousedown', () => directions[dir] = true);
       btn.addEventListener('mouseup', () => directions[dir] = false);
-      btn.addEventListener('mouseleave', () => directions[dir] = false); // por si suelta fuera
+      btn.addEventListener('mouseleave', () => directions[dir] = false);
       btn.addEventListener('touchstart', e => {
         e.preventDefault();
         directions[dir] = true;
@@ -112,7 +115,6 @@
       btn.addEventListener('touchend', () => directions[dir] = false);
     });
 
-    // Animación
     const speed = 0.05;
 
     function animate() {
