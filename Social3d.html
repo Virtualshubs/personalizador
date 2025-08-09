@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Tik3D — Feed 3D con Three.js (MVP)</title>
+<style>
+  :root { --bg:#0b0b0f; --card:#0f1116; --accent:#16a34a; --muted:#9ca3af; }
+  html,body { height:100%; margin:0; background:linear-gradient(180deg,#040406 0%, #0b0b0f 100%); color:white; font-family:Inter,system-ui,Arial; -webkit-font-smoothing:antialiased; }
+  /* Fullscreen single canvas (renderer) */
+  #three-canvas { position:fixed; inset:0; z-index:0; pointer-events:none; }
+  /* Feed container */
+  .feed {
+    position:relative;
+    z-index:1;
+    height:100vh;
+    overflow-y:auto;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .post {
+    position:relative;
+    height:100vh;
+    display:flex;
+    align-items:flex-end;
+    justify-content:flex-start;
+    padding:20px;
+    box-sizing:border-box;
+    scroll-snap-align: start;
+    gap:12px;
+  }
+  .overlay {
+    max-width:380px;
+    width:calc(100% - 40px);
+    background:linear-gradient(180deg, rgba(8,8,10,0.25), rgba(8,8,10,0.6));
+    border-radius:12px;
+    padding:14px;
+    box-shadow:0 6px 24px rgba(0,0,0,0.6);
+    backdrop-filter: blur(6px);
+  }
+  .meta { display:flex; gap:12px; align-items:center; }
+  .avatar { width:48px; height:48px; border-radius:12px; background:#222; display:inline-block; flex:0 0 48px; }
+  .title { font-weight:600; font-size:16px; }
+  .author { color:var(--muted); font-size:13px; margin-top:6px; }
+  .controls { margin-top:12px; display:flex; gap:8px; align-items:center; }
+  .btn {
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.04);
+    padding:8px 12px;
+    border-radius:10px;
+    cursor:pointer;
+    color:white;
+    font-weight:600;
+    display:inline-flex;
+    gap:8px;
+    align-items:center;
+    user-select:none;
+  }
+  .like.active { color:var(--accent); }
+  /* spinner */
+  .spinner { width:28px;height:28px;border-radius:50%;border:3px solid rgba(255,255,255,0.08); border-top-color:rgba(255,255,255,0.6); animation:spin 1s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  /* small UI at right (likes/comments) */
+  .side-ui {
+    position: absolute;
+    right:16px;
+    bottom:120px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    align-items:center;
+    z-index:2;
+  }
+  .side-ui .icon { width:56px; height:56px; border-radius:12px; background:rgba(255,255,255,0.04); display:flex; align-items:center; justify-content:center; font-weight:700; }
+  /* fallback placeholder */
+  .placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:14px; }
+  /* small caption under overlay */
+  .caption { margin-top:10px; color:var(--muted); font-size:13px; }
+  /* make sure content area doesn't block pointer events to canvas controls (canvas pointer-events none by default) */
+  @media (min-width:900px) {
+    .overlay { max-width:420px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="three-canvas"></canvas>
+
+<div class="feed" id="feed">
+  <!-- Repeat posts: each post has data-glb url + metadata -->
+  <section class="post" data-id="p1" data-glb="https://modelviewer.dev/shared-assets/models/Astronaut.glb">
+    <div class="overlay">
+      <div class="meta">
+        <div class="avatar"></div>
+        <div>
+          <div class="title">Astronaut — demo model</div>
+          <div class="author">@spacemaker · 3D</div>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn like">❤ <span class="like-count">0</span></button>
+        <button class="btn">↗ Compartir</button>
+        <div style="flex:1"></div>
+        <div class="spinner-container"><div class="spinner" style="display:none"></div></div>
+      </div>
+      <div class="caption">Un pequeño astronauta listo para posar en AR. Toca para dar like.</div>
+    </div>
+  </section>
+
+  <section class="post" data-id="p2" data-glb="https://modelviewer.dev/shared-assets/models/RobotExpressive.glb">
+    <div class="overlay">
+      <div class="meta">
+        <div class="avatar"></div>
+        <div>
+          <div class="title">Robot Expressive</div>
+          <div class="author">@botlab · 3D</div>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn like">❤ <span class="like-count">0</span></button>
+        <button class="btn">↗ Compartir</button>
+        <div style="flex:1"></div>
+        <div class="spinner-container"><div class="spinner" style="display:none"></div></div>
+      </div>
+      <div class="caption">Modelo con animaciones. Reproducirá la animación si existe.</div>
+    </div>
+  </section>
+
+  <section class="post" data-id="p3" data-glb="https://modelviewer.dev/shared-assets/models/FlightHelmet.glb">
+    <div class="overlay">
+      <div class="meta">
+        <div class="avatar"></div>
+        <div>
+          <div class="title">Flight Helmet</div>
+          <div class="author">@designer · 3D</div>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn like">❤ <span class="like-count">0</span></button>
+        <button class="btn">↗ Compartir</button>
+        <div style="flex:1"></div>
+        <div class="spinner-container"><div class="spinner" style="display:none"></div></div>
+      </div>
+      <div class="caption">Buen PBR. Gira con gestos si tienes 2 dedos moviéndose.</div>
+    </div>
+  </section>
+
+  <!-- espacio final -->
+  <div style="height:120px"></div>
+</div>
+
+<!-- side UI -->
+<div class="side-ui" id="sideUI">
+  <div class="icon" id="likesTotal">0 ❤</div>
+  <div class="icon">💬</div>
+  <div class="icon">🔗</div>
+</div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.154.0/build/three.module.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.154.0/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'https://cdn.jsdelivr.net/npm/three@0.154.0/examples/jsm/loaders/DRACOLoader.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.154.0/examples/jsm/controls/OrbitControls.js';
+
+const canvas = document.getElementById('three-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+// Scene & camera shared
+const scene = new THREE.Scene();
+scene.background = null;
+
+const camera = new THREE.PerspectiveCamera(40, window.innerWidth/window.innerHeight, 0.1, 100);
+camera.position.set(0,1.2,3);
+
+// Simple environment
+const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+scene.add(hemi);
+const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+dir.position.set(5,10,7);
+dir.castShadow = true;
+scene.add(dir);
+
+// ground light reflection (soft)
+const env = new THREE.AmbientLight(0xffffff, 0.3);
+scene.add(env);
+
+// controls (for desktop debug; pointer-events none by default on canvas so enable only when pressing D)
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enabled = false;
+controls.target.set(0,1,0);
+controls.update();
+
+// Loader config (DRACO optional)
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/'); // CDN
+const loader = new GLTFLoader();
+loader.setDRACOLoader(dracoLoader);
+
+let activeModel = null;
+let activeMixer = null;
+const clock = new THREE.Clock();
+
+// utility: dispose GLTF
+function disposeModel(gltf) {
+  if (!gltf) return;
+  gltf.scene.traverse((child) => {
+    if (child.isMesh) {
+      child.geometry?.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) {
+          child.material.forEach(m => {
+            if (m.map) m.map.dispose();
+            m.dispose();
+          });
+        } else {
+          if (child.material.map) child.material.map.dispose();
+          child.material.dispose();
+        }
+      }
+    }
+  });
+}
+
+// Responsive
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+
+// Simple render loop that only runs when there's an active model or when requested
+let running = true;
+function animate() {
+  if (!running) return;
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  if (activeMixer) activeMixer.update(dt);
+  renderer.render(scene, camera);
+}
+animate();
+
+// Feed logic
+const posts = Array.from(document.querySelectorAll('.post'));
+const spinnerContainers = document.querySelectorAll('.spinner-container');
+const sideLikes = document.getElementById('likesTotal');
+
+// Like handling (demo persistence using localStorage)
+function setLikeCountUI(postEl, count) {
+  postEl.querySelector('.like-count').textContent = count;
+}
+function getLikes(id) {
+  return Number(localStorage.getItem('like_'+id) || 0);
+}
+function toggleLike(postEl) {
+  const id = postEl.dataset.id;
+  const btn = postEl.querySelector('.like');
+  let current = getLikes(id);
+  current = current + 1;
+  localStorage.setItem('like_'+id, current);
+  btn.classList.add('active');
+  setLikeCountUI(postEl, current);
+  updateSideTotal();
+}
+function updateSideTotal() {
+  let total = 0;
+  posts.forEach(p => total += getLikes(p.dataset.id));
+  sideLikes.textContent = total + ' ❤';
+}
+
+// init UI counts
+posts.forEach(p => setLikeCountUI(p, getLikes(p.dataset.id)));
+
+// like button events
+document.querySelectorAll('.like').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const post = btn.closest('.post');
+    toggleLike(post);
+  });
+});
+
+// IntersectionObserver to detect visible post
+let activeIndex = -1;
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
+      const idx = posts.indexOf(entry.target);
+      if (idx !== activeIndex) {
+        setActivePost(idx);
+      }
+    }
+  });
+}, { threshold: [0.6] });
+
+posts.forEach(p => io.observe(p));
+
+// Load & show model for active post
+async function setActivePost(index) {
+  activeIndex = index;
+  const post = posts[index];
+  if (!post) return;
+  // show spinner
+  const spinner = post.querySelector('.spinner');
+  if (spinner) spinner.style.display = 'inline-block';
+
+  const url = post.dataset.glb;
+  try {
+    // cleanup old
+    if (activeModel) {
+      if (activeMixer) { activeMixer.stopAllAction(); activeMixer = null; }
+      scene.remove(activeModel.scene || activeModel);
+      disposeModel(activeModel);
+      activeModel = null;
+    }
+
+    // LOAD
+    const gltf = await loader.loadAsync(url);
+    // center model
+    const box = new THREE.Box3().setFromObject(gltf.scene);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    // scale to reasonable size
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const scale = (1.6 / maxDim) || 1;
+    gltf.scene.scale.setScalar(scale);
+    // re-center
+    gltf.scene.position.sub(center.multiplyScalar(scale));
+    // place a bit lower
+    gltf.scene.position.y -= 0.2;
+
+    scene.add(gltf.scene);
+    activeModel = gltf;
+
+    // setup animation if exists
+    if (gltf.animations && gltf.animations.length) {
+      activeMixer = new THREE.AnimationMixer(gltf.scene);
+      gltf.animations.forEach((clip) => {
+        const action = activeMixer.clipAction(clip);
+        action.play();
+      });
+    } else {
+      activeMixer = null;
+    }
+
+    // nice camera framing: position camera to fit
+    // compute bounding sphere
+    const sphere = new THREE.Sphere();
+    box.getBoundingSphere(sphere);
+    const radius = sphere.radius * scale;
+    const dist = radius / Math.tan( (camera.fov * Math.PI/180) / 2 );
+    // axis of view: place camera in z
+    camera.position.set(0, Math.max(1.0, radius*0.6), dist*1.2);
+    camera.lookAt(0, 0.8, 0);
+    controls.target.set(0, 0.8, 0);
+    controls.update();
+
+    // hide spinner
+    if (spinner) spinner.style.display = 'none';
+  } catch (err) {
+    console.error('Error cargando glb', err);
+    const spinnerEl = post.querySelector('.spinner');
+    if (spinnerEl) spinnerEl.style.display = 'none';
+    // show a small fallback
+    post.querySelector('.caption').textContent = 'Error cargando modelo — revisa la URL o CORS.';
+  } finally {
+    updateSideTotal();
+  }
+}
+
+// initial active post set
+// wait a beat for layout
+setTimeout(() => {
+  // find the first visible (middle)
+  posts.forEach((p, i) => {
+    const rect = p.getBoundingClientRect();
+    if (rect.top >= 0 && rect.top < window.innerHeight/2) {
+      setActivePost(i);
+    }
+  });
+}, 200);
+
+// simple gesture: tap on overlay toggles debug orbit controls (desktop)
+document.body.addEventListener('keydown', (e) => {
+  if (e.key === 'd') {
+    controls.enabled = !controls.enabled;
+    renderer.domElement.style.pointerEvents = controls.enabled ? 'auto' : 'none';
+  }
+});
+document.body.addEventListener('touchstart', (e) => {
+  // two-finger drag to rotate
+  if (e.touches.length === 2) controls.enabled = true;
+}, {passive:true});
+document.body.addEventListener('touchend', (e) => {
+  if (e.touches.length < 2) controls.enabled = false;
+});
+
+// optional: prefetch next model in feed for smoother experience
+async function prefetchNext(currentIndex) {
+  const next = posts[currentIndex+1];
+  if (!next) return;
+  const url = next.dataset.glb;
+  try {
+    // preload silently into memory (three's loader caches)
+    await loader.loadAsync(url);
+  } catch(e) { /* ignore prefetch errors */ }
+}
+
+// call prefetch after load
+const origSetActive = setActivePost;
+setActivePost = async function(index) {
+  await origSetActive(index);
+  prefetchNext(index);
+};
+
+// small accessibility: allow keyboard up/down to move feed
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowDown') {
+    const next = Math.min(posts.length-1, activeIndex+1);
+    posts[next].scrollIntoView({behavior:'smooth'});
+  } else if (e.key === 'ArrowUp') {
+    const prev = Math.max(0, activeIndex-1);
+    posts[prev].scrollIntoView({behavior:'smooth'});
+  }
+});
+</script>
+</body>
+</html>
