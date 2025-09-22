@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Twins Scene</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<style>
+  body { margin:0; overflow:hidden; background-color:#ffffff; }
+  canvas { display:block; margin:0 auto; }
+</style>
+</head>
+<body>
+<script>
+const scene = new THREE.Scene();
+scene.background = new THREE.Color("#ffffff");
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(0,1,4);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+// Luz básica
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambientLight);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+directionalLight.position.set(5,10,5);
+scene.add(directionalLight);
+
+// Loader GLTF
+const loader = new THREE.GLTFLoader();
+const models = [];
+
+const modelData = [{"url":"https://virtualshubs.github.io/personalizador/ikea_rocking_moose_redrubberwood_pbr.glb","position":{"x":0,"y":0,"z":0},"scale":{"x":1,"y":1,"z":1},"rotation":{"x":0,"y":0,"z":0},"producto":{}}];
+modelData.forEach((data) => {
+  loader.load(data.url, (gltf) => {
+    const obj = gltf.scene;
+    obj.position.set(data.position.x, data.position.y, data.position.z);
+    obj.scale.set(data.scale.x, data.scale.y, data.scale.z);
+    obj.rotation.set(data.rotation.x, data.rotation.y, data.rotation.z);
+    obj.userData.producto = data.producto;
+    scene.add(obj);
+    models.push(obj);
+  });
+});
+
+// Botones dinámicos
+const dynamicButtons = [{"position":{"x":1,"y":3,"z":0},"producto":{}}];
+dynamicButtons.forEach((btnData, i) => {
+  const geometry = new THREE.BoxGeometry(0.3,0.3,0.3);
+  const material = new THREE.MeshStandardMaterial({ color: 0xff8c00 });
+  const button = new THREE.Mesh(geometry, material);
+  button.position.set(btnData.position.x, btnData.position.y, btnData.position.z);
+  button.userData.productData = btnData.producto;
+  scene.add(button);
+
+  // Función para mostrar info + QR
+  button.callback = () => showProductPanel(button.userData.productData);
+});
+
+// Panel de info + QR
+function showProductPanel(productData){
+  let panel = document.getElementById("product-panel");
+  if(!panel){
+    panel = document.createElement("div");
+    panel.id = "product-panel";
+    panel.style.position = "fixed";
+    panel.style.bottom = "0";
+    panel.style.left = "0";
+    panel.style.width = "100%";
+    panel.style.background="#fff";
+    panel.style.padding="20px";
+    panel.style.zIndex="1000";
+    document.body.appendChild(panel);
+  }
+  panel.innerHTML = `
+    <strong>${productData.nombreProducto || 'Producto Sin Nombre'}</strong><br>
+    SKU: ${productData.sku || ''}<br>
+    Descripción: ${productData.descripcion || ''}<br>
+    Peso: ${productData.peso || ''}<br>
+    Dimensiones: ${productData.dimensiones || ''}<br>
+    Marca: ${productData.marca || ''}<br>
+    <canvas id="qr-canvas"></canvas><br>
+    <a href="${productData.linkCompra || '#'}" target="_blank">Comprar Producto</a>
+  `;
+  QRCode.toCanvas(document.getElementById("qr-canvas"), productData.linkCompra || "#");
+}
+
+// Click sobre los botones
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let currentButton = null;
+window.addEventListener('click', (event)=>{
+  mouse.x = (event.clientX/window.innerWidth)*2-1;
+  mouse.y = -(event.clientY/window.innerHeight)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const intersects = raycaster.intersectObjects(scene.children,true);
+  if(intersects.length>0){
+    let obj = intersects[0].object;
+    while(!obj.userData.productData && obj.parent) obj=obj.parent;
+    if(obj.userData.productData){
+      obj.callback();
+    }
+  }
+});
+
+function animate(){
+  controls.update();
+  renderer.render(scene,camera);
+  requestAnimationFrame(animate);
+}
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+</script>
+</body>
+</html>
