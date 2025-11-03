@@ -1,0 +1,3497 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>3DTWINS visor</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+<style>
+  body { margin:0; font-family: Inter, system-ui, Arial; display:flex; height:100vh; }
+
+
+ #startScreen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+    #appContainer {
+      display: none;
+      width: 100%;
+      height: 100%;
+    }
+
+
+.config-btn {
+  background: #2222221c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+.config-btn:hover {
+  background: #444;
+}
+
+.material-icons {
+  font-size: 20px;
+  color: #333;
+  vertical-align: middle;
+}
+button .material-icons {
+  margin-right: 4px;
+}
+
+
+  
+  #app { display:flex; flex:1; gap:12px; padding:12px; box-sizing:border-box; margin-top: 0px; }
+  #canvasWrap { flex:1; border-radius:12px; overflow:hidden; box-shadow:0 12px 24px rgba(13, 0, 255, 0.15); position:relative; }
+  canvas { display:block; width:100%; height:100%; }
+  #panel { width:340px; max-width:340px; background:#f4f4f4; border-radius:12px; padding:16px; box-shadow:0 6px 24px rgba(0,0,0,0.08); overflow:auto; }
+  h3 { margin: 29px 0px; font-size:18px; }
+  label { display:block; margin-top:8px; font-size:13px; color:#000000; }
+  input[type=text], input[type=color], textarea { width:100%; padding:8px; border-radius:8px; border:1px solid #ddd; margin-top:6px; box-sizing:border-box; }
+  input[type=range], input[type=number] { width:100%; }
+  button { margin-top:0px; padding:8px 12px; border-radius:28px; border:none; cursor:pointer; background:#343536; color:white;  }
+  .small { font-size:13px; color:#666; margin-top:6px; }
+  img.qr { width:120px; height:120px; display:block; margin-top:8px; border-radius:8px; border:1px solid #eee; }
+  #fileInput, #meshTexture { display:none; }
+  .topbar { position:absolute; left:12px; top:12px; display:flex; gap:8px; z-index:999; }
+  .chip { background:rgba(255,255,255,0.9); padding:8px 10px; border-radius:999px; box-shadow:0 2px 6px rgba(0,0,0,0.08); font-size:13px; }
+  #floatMenu { position:absolute; top:80px; left:20px; background:#ffffff; padding:12px; border-radius:18px; box-shadow:0 6px 24px rgba(0,0,0,0.15); display:none; z-index:998; }
+  #meshList { margin-top:12px; max-height:200px; overflow:auto; border:1px solid #eee; padding:8px; border-radius:8px; }
+  #meshList label { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; cursor:pointer; }
+  #meshList .children { margin-left:16px; }
+  #hudButtons { position:absolute;top: 12px; right:12px; display:flex; flex-direction:column; gap:4px; z-index:100; }
+  .hud-btn {  padding:10px 10px; border-radius:18px; border:none; background:#ababab; color:white; cursor:pointer; font-size:13px; }
+  .toggle-btn { margin-left:4px; cursor:pointer; font-size:12px; color:#666; }
+  #animationPanel { margin-top:12px; padding:8px; border:1px solid #eee; border-radius:8px; }
+  ::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.2);
+  border-radius: 3px;
+}
+
+#floatColor {
+  display: none;
+}
+
+
+@media (max-width: 768px) {
+  .shopping-modal-content {
+    flex-direction: column;
+  }
+  .product-actions {
+    flex-direction: column;
+  }
+}
+
+
+
+
+</style>
+</head>
+<body>
+
+  <!-- Pantalla inicial con botón -->
+  <div id="startScreen">
+    <h2>Haz clic para cargar el modelo</h2>
+    <button id="loadButton">Cargar modelo</button>
+  </div>
+
+  <!-- Contenedor de la app -->
+  <div id="appContainer">
+
+<div id="app">
+  <div id="canvasWrap">
+    <div class="topbar">
+      <div class="chip" id="modelName" hidden>No model</div>
+
+
+
+<!-- Modal de compra dinámico estilo “Shopify-like” -->
+<div id="shoppingModal" style="display:none;position:fixed;margin:0px;top:28px;left:0;width:100%;height:100vh;background:rgba(0,0,0,0.85);justify-content:center;align-items:center;z-index: index 9999;">
+  <div style="position:relative;width:100%;max-width:1000px;height:95%;background:#fff;border-radius:0px;overflow:hidden;display:flex;flex-direction:row;box-shadow:0 10px 25px rgba(0,0,0,0.4);">
+
+    <div id="shoppingModalRender" style="flex:1;background:#f0f0f000;display:flex;justify-content:center;align-items:center;"></div>
+
+    <div style="flex:1;padding:24px;display:flex;flex-direction:column;justify-content:space-between;">
+
+      <h2 id="shoppingModalTitle" style="margin-top:20px;font-family: Inter, system-ui, Arial;font-size:39px;">Nombre</h2>
+
+      <div id="shoppingModalInfo" style="flex:1;overflow-y:auto;font-family: Inter, system-ui, Arial;font-size:14px;color:#333;margin:16px 0;"></div>
+
+
+      <div style="margin-bottom:24px;display:flex;align-items:center;gap:12px;">
+        <label for="productQuantity" style="font-weight:bold;">Cantidad:</label>
+        <input type="number" id="productQuantity" value="1" min="1" style="width:60px;padding:6px;border-radius:24px;border:1px solid #ccc;text-align:center;">
+      </div>
+
+
+
+      <!-- Botones de acción -->
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <button id="addToCartBtn" style="flex:1;padding:12px 20px;font-family: Inter, system-ui, Arial;background:#94f17f;color:#000000;border:none;border-radius:18px;cursor:pointer;font-size:15px;">Comprar 🛒</button>
+        <button id="buyNowBtn" style="flex:1;padding:12px 20px;background:#94f17f;color:#333;border:none;border-radius:18px;cursor:pointer;font-size:15px;">Comprar ahora</button>
+      
+      </div>
+
+    </div>
+
+    <!-- Botón cerrar -->
+    <button id="closeShoppingModal" style="position:absolute;top:20px;right:20px;padding:6px 10px;background:#b61a3b;color:#fff;border:none;border-radius:24px;cursor:pointer;z-index:10;">X</button>
+  </div>
+</div>
+
+
+       <button id="playAnim">
+  <span class="material-symbols-outlined">joystick</span>
+</button>
+      <div class="chip" id="modelStatus" hidden>Idle</div>  
+    </div>
+    <canvas id="c"></canvas>
+
+<div id="catalogHUD" style="
+  position:absolute;
+  bottom:20px;
+  left:20px;
+  width:260px;
+  background:rgba(255, 255, 255, 0.593);
+  border:1px solid #ddd;
+  border-radius:12px;
+  padding:10px 14px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.2);
+  backdrop-filter:blur(6px);
+  z-index:10;
+  display:none;
+font-family: Inter, system-ui, Arial;
+">
+  <h4 style="margin:0 0 6px;">Auditoría 3DT</h4>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <img id="catalogSealLogo" src="https://virtualshubs.github.io/personalizador/3dtwinslogo2025:2026.png"
+         style="width:48px;height:48px;border-radius:8px;flex-shrink:0;">
+    <div id="catalogHUDContent" style="font-size:13px;line-height:1.4;"></div>
+  </div>
+</div>
+
+
+    <div id="hudButtons"></div> 
+    <div id="floatMenu">
+
+    
+      <h4>Editar Material</h4>
+     <input type="color" id="floatColor">
+      <label>Opacidad<input type="range" id="floatOpacity" min="0" max="1" step="0.01"/></label>
+      <label>Textura<input type="file" id="floatTexture" accept="image/*"/></label>
+      <button id="applyFloat" hidden>Aplicar</button>
+    </div>
+
+
+  </div>
+
+  <div id="panel" hidden>
+    <h3> <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px;">
+ smart_toy
+  </span>Cargar modelo 3D</h3>
+    <label>Modelo URL:
+      <input type="text" id="modelUrl" value="https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf" />
+    </label>
+    <div style="display:flex; gap:8px;">
+      <button id="loadBtn">Cargar modelo por url</button>
+      <button id="openFile">Subir (.glb/.gltf)</button>
+      <input type="file" id="fileInput" accept=".glb,.gltf" />
+
+    </div>
+
+ <!-- Input para probar la URL del modelo -->
+<input type="text" id="modelUrlInput" placeholder="Pega aquí la URL generada..." style="width:100%;margin:10px 0">
+<button id="loadModelFromUrlBtn">Cargar modelo desde URL</button>
+
+
+  
+<div class="hud-option">
+  <label>
+    <input type="checkbox" id="toggleShopBtn" checked />
+    Mostrar botón Shop 🛒
+  </label>
+</div>
+
+
+    <h3>Elementos:</h3>
+    <div id="meshList"></div>
+
+<div id="blogPanel" style="display:block;padding:8px;background:#f9f9f9;width:300px;">
+  <h3>Sello oficial 3DT</h3>
+  <label style="display:flex;align-items:center;gap:8px;">
+    <input type="checkbox" id="toggleBlogHud" /> Mostrar último sello.
+  </label>
+  <div id="panelBlogUI"></div>
+  <button id="createCatalogSeal" style="margin-top:10px;width:100%;padding:8px;">Crear nuevo sello.</button>
+</div>
+
+ 
+
+
+<div id="purchasePanel" style="margin-top:12px; padding:8px; border-top:1px solid #eee;" hidden>
+  <h4 style="margin:0 0 8px 0">Comprar / Purchase</h4>
+
+  <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+    <input id="togglePurchaseBtnCheck" type="checkbox" />
+    <span>Activar botón de compra</span>
+  </label>
+
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+    <select id="purchasePlatformSelect" style="flex:1;padding:6px;">
+      <option value="shopify">Shopify</option>
+      <option value="woocommerce">WooCommerce</option>
+      <option value="magento">Magento</option>
+      <option value="custom">Custom / Other</option>
+    </select>
+    <input id="purchaseBaseUrlInput" type="text" placeholder="https://vendedor.example/ (base URL)" style="flex:2;padding:6px;" />
+  </div>
+
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+    <button id="savePurchaseBtn" style="padding:6px 10px;">Generar botón</button>
+    <button id="previewPurchaseBtn" style="padding:6px 10px;">Previsualizar URL</button>
+    <span id="purchaseUrlPreview" style="font-size:12px;color:#666;word-break:break-all;"></span>
+  </div>
+
+  <div style="font-size:12px;color:#666;">
+  </div>
+</div>
+
+<h3>
+  <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px;">
+    interactive_space
+  </span>
+  Editar escenario
+</h3>
+
+<div id="lightEditor" style="padding:10px; border:1px solid #eee; border-radius:8px; background:#f8f8f8; margin-top:8px;">
+  <label>Fondo: <input type="color" id="bgColorPicker" value="#f1f1f1"></label>
+  <br><br>
+  <label>Luz Ambiente: <input type="range" id="ambientIntensity" min="0" max="2" step="0.05" value="0.6"></label>
+  <label>Día Frontal: <input type="range" id="dayLightIntensity" min="0" max="2" step="0.05" value="0.6"></label>
+  <label>Key Light: <input type="range" id="keyLightIntensity" min="0" max="2" step="0.05" value="0.4"></label>
+  <label>Fill Light: <input type="range" id="fillLightIntensity" min="0" max="2" step="0.05" value="0.25"></label>
+  <label>Rim Light: <input type="range" id="rimLightIntensity" min="0" max="2" step="0.05" value="0.3"></label>
+  <label>Top Light: <input type="range" id="topLightIntensity" min="0" max="2" step="0.05" value="0.4"></label>
+</div>
+
+<div id="animationPanel">
+  <h4>
+    <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px;">
+      sports_esports
+    </span>
+    Animación
+  </h4>
+
+  <label><input type="checkbox" id="enableAnim"/> Activar animación 360º</label>
+
+  <div id="animControls" style="display:none; margin-top:6px;">
+    <label>Duración (s):
+      <input type="number" id="animDuration" value="3" min="1" max="30" step="0.5"/>
+    </label>
+    <label>Velocidad:
+      <input type="number" id="animSpeed" value="1" min="0.1" max="5" step="0.1"/>
+    </label>
+
+    <label>Tipo de animación:
+      <select id="animType">
+        <option value="360">Rotación 360º</option>
+        <option value="hover">Levitación</option>
+        <option value="aura">Aura mágica</option>
+      </select>
+    </label>
+  </div>
+</div>
+    <h3><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px;">
+output_circle
+  </span>Descargar & Exportar</h3>
+    <button id="exportBtn">Sellar gemelo digital</button>
+    <a id="downloadLink" style="display:block; margin-top:8px;"></a>
+    <button id="downloadFullHTML">Crear escena interoperable</button>
+    <button id="descargarLibrary" style="padding:8px 12px;margin:10px;" hidden>Descargar Biblioteca</button>
+<button id="downloadHTMLWithURLsBtn">Descargar HTML con URLs</button>
+
+    <div style="margin-top:8px">
+  <button id="encodeSporeBtn">Generar Spore</button>
+  <button id="decodeSporeBtn">Reconstruir Spore </button>
+  <button id="downloadSporeBtn">Descargar Spore </button>
+  <button id="manifestSporeBtn">🌿 Manifestar</button>
+
+</div>
+
+   
+    <div id="floatButtons">
+<div id="sceneControls">
+</div>
+
+</div>
+
+</div>
+
+<div id="libraryContainer" style="display:flex; gap:10px;" hidden></div>
+  </div>
+
+  </div>
+
+<script src="https://unpkg.com/three@0.134.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://unpkg.com/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://unpkg.com/three@0.134.0/examples/js/exporters/GLTFExporter.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+
+<script>
+
+
+
+// --- Obtener modelo desde la URL del navegador ---
+  const urlParams = new URLSearchParams(window.location.search);
+
+  // ✅ Buscar el último modelUrl que apunte a un .glb
+  let modelUrlParam = null;
+  for (const [key, value] of urlParams.entries()) {
+    if (key === "modelUrl" && value.endsWith(".glb")) {
+      modelUrlParam = value;
+    }
+  }
+
+  const configParam = urlParams.get("config");
+
+  // 🔹 Modelo por defecto (para tests locales)
+  const DEFAULT_MODEL = "https://3dtwins.es/producto-personalizado?name=Termo%20caf%C3%A9&config=Object_3%3A%23ff8300%7CObject_4%3A%23ff8300%7CObject_5%3A%231e1c28&quantity=1&token=no-token-found&modelUrl=https%3A%2F%2Fvirtualshubs.github.io%2Fpersonalizador%2Fring.glb";
+  const MODEL_URL = modelUrlParam || DEFAULT_MODEL;
+
+  // --- Pantalla de inicio ---
+  const startScreen = document.getElementById("startScreen");
+  const appContainer = document.getElementById("appContainer");
+  const loadButton = document.getElementById("loadButton");
+
+  loadButton.addEventListener("click", () => {
+    startScreen.style.display = "none";
+    appContainer.style.display = "block";
+
+    setTimeout(() => {
+      const input = document.getElementById("modelUrlInput");
+      const btn = document.getElementById("loadModelFromUrlBtn");
+
+      if (!input || !btn) {
+        console.error("⚠️ No se encontró el input o el botón del editor");
+        return;
+      }
+
+      // Insertamos la URL del modelo detectado
+      input.value = MODEL_URL;
+      btn.click();
+
+    }, 1000);
+  });
+
+
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: true,
+  alpha: false,
+  powerPreference: "high-performance",
+   preserveDrawingBuffer: true
+});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
+renderer.setSize(window.innerWidth, window.innerHeight, false);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0; 
+renderer.physicallyCorrectLights = true;
+const scene = new THREE.Scene();
+const initialBgColor = "#f1f1f1";
+scene.background = new THREE.Color(initialBgColor);
+renderer.setClearColor(new THREE.Color(initialBgColor));
+const bgColorPicker = document.getElementById("bgColorPicker");
+if (bgColorPicker) bgColorPicker.value = initialBgColor;
+bgColorPicker.addEventListener("input", () => {
+  const color = new THREE.Color(bgColorPicker.value);
+  scene.background = color;
+  renderer.setClearColor(color);
+});
+
+const camera = new THREE.PerspectiveCamera(45, 2, 0.1, 2000);
+camera.position.set(0, 1.6, 3);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+//libreria luces
+
+const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+scene.add(ambient);
+
+const dayLight = new THREE.DirectionalLight(0xffffff, 0.6);
+dayLight.position.set(0, 5, 10); 
+dayLight.castShadow = true;
+dayLight.shadow.mapSize.width = 2048;
+dayLight.shadow.mapSize.height = 2048;
+dayLight.shadow.radius = 15;
+dayLight.shadow.bias = -0.001;
+scene.add(dayLight);
+
+  const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
+  keyLight.position.set(15, 18, 25);
+  keyLight.castShadow = true;
+  keyLight.shadow.radius = 20;
+  
+scene.add(keyLight);
+
+
+  
+
+
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.25);
+fillLight.position.set(-6, 4, -4);
+scene.add(fillLight);
+
+const rimLight = new THREE.DirectionalLight(0xffffff, 0.3);
+rimLight.position.set(0, 3, -8);
+scene.add(rimLight);
+
+const topLight = new THREE.SpotLight(0xffffff, 0.4, 0, Math.PI/3, 0.7, 2);
+topLight.position.set(0, 10, 0);
+topLight.castShadow = true;
+topLight.shadow.radius = 15;
+scene.add(topLight);
+
+
+const loader = new THREE.GLTFLoader();
+const exporter = new THREE.GLTFExporter();
+let currentModel = null;
+let selectedMesh = null;
+let selectedMeshGroup = null;
+let outlineMesh = null;
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const groups = {}; 
+
+
+//libreria marca blanca
+
+const libraryModels = [
+  { name: "Vaso café", src: "https://virtualshubs.github.io/personalizador/cafellevar.glb" },
+  { name: "Termo café", src: "https://virtualshubs.github.io/personalizador/ring.glb" },
+];
+
+const libraryContainer = document.createElement('div');
+libraryContainer.id = 'libraryContainer';  
+libraryContainer.style.width = "80px";
+libraryContainer.style.height = "80%";
+libraryContainer.style.background = "#fff";
+libraryContainer.style.borderRadius = "12px";
+libraryContainer.style.padding = "6px";
+libraryContainer.style.display = "flex";
+libraryContainer.style.flexDirection = "column";
+libraryContainer.style.gap = "8px";
+libraryContainer.style.overflowY = "auto";
+libraryContainer.style.overflowX = "hidden";
+libraryContainer.style.height = "calc(94vh - 24px)";
+libraryContainer.style.boxShadow = "0 6px 24px rgba(0,0,0,0.12)";
+libraryContainer.style.scrollbarWidth = "thin"; 
+libraryContainer.style.scrollbarColor = "#bbb transparent"; 
+libraryContainer.style.setProperty("overscroll-behavior", "contain"); 
+
+const style = document.createElement('style');
+style.textContent = `
+  #app > div::-webkit-scrollbar {
+    width: 6px;
+  }
+  #app > div::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.25);
+    border-radius: 6px;
+  }
+  #app > div::-webkit-scrollbar-track {
+    background: transparent;
+  }
+`;
+document.head.appendChild(style);
+
+const app = document.getElementById('app');
+app.insertBefore(libraryContainer, app.firstChild);
+const miniLoader = new THREE.GLTFLoader();
+
+function createPreview(modelSrc, callback){
+  const miniScene = new THREE.Scene();
+  const miniCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+  miniCamera.position.set(2, 2, 2);
+  miniCamera.lookAt(0,0,0);
+
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
+  miniScene.add(hemi);
+  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+  dir.position.set(3,3,3);
+  miniScene.add(dir);
+
+  const miniRenderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  miniRenderer.setSize(128,128);
+  miniRenderer.outputEncoding = THREE.sRGBEncoding;
+
+  miniRenderer.domElement.style.display = "none";
+  document.body.appendChild(miniRenderer.domElement);
+
+  miniLoader.load(modelSrc, gltf=>{
+    const obj = gltf.scene;
+    miniScene.add(obj);
+
+    const box = new THREE.Box3().setFromObject(obj);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    obj.position.sub(center);
+
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = miniCamera.fov * Math.PI/180;
+    const dist = maxDim / (2*Math.tan(fov/2));
+    miniCamera.position.set(dist, dist, dist);
+    miniCamera.lookAt(0,0,0);
+
+    miniRenderer.render(miniScene, miniCamera);
+
+    const imgData = miniRenderer.domElement.toDataURL();
+    callback(imgData);
+
+    miniRenderer.domElement.remove();
+    miniRenderer.dispose();
+  },
+  undefined,
+  err=>{
+    console.error("Error cargando modelo:", modelSrc, err);
+    callback(null); // fallback
+  });
+}
+
+libraryModels.forEach(item=>{
+  const slot = document.createElement('div');
+  slot.style.width="80px";
+  slot.style.height="80px";
+  slot.style.borderRadius="50%";
+  slot.style.background="#eee";
+  slot.style.cursor="pointer";
+  slot.style.flexShrink=0;
+  slot.style.display="flex";
+  slot.style.alignItems="center";
+  slot.style.justifyContent="center";
+  slot.title = item.name;
+
+  const img = document.createElement('img');
+  img.style.width="100%";
+  img.style.height="100%";
+  img.style.borderRadius="50%";
+  slot.appendChild(img);
+
+createPreview(item.src, dataUrl=>{
+  if (dataUrl) {
+    img.src = dataUrl;
+  } else {
+    img.style.background = "#ccc"; 
+  }
+});
+
+slot.onclick = () => {
+  if (item.modelBase64) {
+    // Modelo embebido en Base64
+    const jsonStr = base64DecodeUnicode(item.modelBase64);
+    loader.parse(jsonStr, '', (gltfParsed) => {
+      handleParsedGltf(gltfParsed, item.name); // 🔹 reconstruye botón y escena
+    });
+  } else {
+    // Modelo desde archivo o URL
+    loadGLB(item.src, item.name);
+  }
+};
+
+
+  libraryContainer.appendChild(slot);
+});
+
+
+function findSporeCandidate(root) {
+  // root normalmente será gltf.scene o currentModel
+  if (!root) return null;
+
+  // 1) root mismo
+  if (root.userData?.isSpore || root.userData?.sporeData || root.userData?.snapshot) return root;
+
+  // 2) search children
+  let found = null;
+  root.traverse((obj) => {
+    if (found) return;
+    if (obj.userData?.isSpore || obj.userData?.sporeData || obj.userData?.snapshot) {
+      found = obj;
+    }
+    // también considerar si tiene chunks individuales
+    if (!found && obj.userData && typeof obj.userData._spore_chunk_base64 === "string") {
+      // subimos al padre más cercano que agrupe chunks (mejor coger root)
+      found = root;
+    }
+  });
+  return found;
+}
+
+
+
+function loadGLB(url, name = "", onLoaded) {
+
+  if (typeof url === "object" && url.scene) {
+    // Si se pasa un gltf ya parseado, lo aplicamos directamente
+    return handleParsedGltf(url, name);
+  }
+
+  loader.load(
+    url,
+    async (gltf) => {
+
+      // --- 🔹 RESET DE PURCHASE BUTTON AL INICIO ---
+      const purchaseBtn = document.getElementById('purchaseBtn');
+      const togglePurchaseBtnCheck = document.getElementById("togglePurchaseBtnCheck");
+      const purchaseBaseUrlInput = document.getElementById("purchaseBaseUrlInput");
+      const purchaseUrlPreview = document.getElementById("purchaseUrlPreview");
+
+      if (purchaseBtn) {
+        purchaseBtn.style.display = 'none';
+        purchaseBtn.replaceWith(purchaseBtn.cloneNode(true)); // limpia eventos
+      }
+      if (togglePurchaseBtnCheck) togglePurchaseBtnCheck.checked = false;
+      if (purchaseBaseUrlInput) purchaseBaseUrlInput.value = "";
+      if (purchaseUrlPreview) purchaseUrlPreview.textContent = "";
+
+      // --- Limpiar modelo anterior ---
+      if (currentModel) scene.remove(currentModel);
+
+      currentModel = gltf.scene;
+      currentModel.userData.modelUrl = url;
+      if (!currentModel.userData.originalName)
+        currentModel.userData.originalName = currentModel.name || name || "unknown";
+
+      let baseSceneName = "3DTWINS_SCENE";
+      let counter = 1;
+
+      // --- Renombrar escenas para evitar conflictos ---
+      currentModel.traverse((child) => {
+        if (child.isScene || child.type === "Object3D") {
+          if (child.name === baseSceneName) {
+            child.name = `${baseSceneName}_${counter++}`;
+          } else if (!child.name.startsWith("3DTWINS_SCENE")) {
+            child.name = baseSceneName;
+          }
+        }
+      });
+
+      // --- Procesar meshes: blogs y sello ---
+      await currentModel.traverse(async (child) => {
+        if (child.isMesh) {
+          blogTargetMesh = child;
+
+          if (!child.userData.blogs) child.userData.blogs = [];
+          if (!child.userData.catalogSeal) {
+            const defaultEntry = {
+              text: '3D Twins oficial',
+              author: '3D Twins',
+              desc: 'Sello de autenticidad automáticamente',
+              date: new Date().toLocaleString(),
+              token: generarToken(),
+              hash: '',
+            };
+            defaultEntry.hash = await sha256(defaultEntry.text + defaultEntry.author + defaultEntry.date + defaultEntry.token);
+            child.userData.catalogSeal = defaultEntry;
+            child.userData.blogs.push(defaultEntry);
+          }
+
+          renderBlogPanel(child);
+        }
+      });
+
+      // --- Reset selección y outline ---
+      selectedMesh = null;
+      selectedMeshGroup = null;
+      if (outlineMesh) { scene.remove(outlineMesh); outlineMesh = null; }
+      document.getElementById('floatMenu').style.display = 'none';
+
+      for (const key in groups) delete groups[key];
+      updateHUD();
+
+      // --- Centrar y escalar modelo ---
+      centerAndScale(currentModel);
+      scene.add(currentModel);
+
+      // --- 🔹 Detectar y rehidratar Spore ---
+      try {
+        const sporeCandidate = findSporeCandidate(currentModel);
+        if (sporeCandidate) {
+          const reconstructed = await awakenSpore(sporeCandidate);
+          if (reconstructed) {
+            try { scene.remove(currentModel); if (sporeCandidate.parent) sporeCandidate.parent.remove(sporeCandidate); } catch(e){}
+            scene.add(reconstructed);
+            currentModel = reconstructed;
+            window.lastSporeSnapshot = structuredClone(reconstructed.userData.snapshot);
+
+            if(currentModel.userData?.snapshot?.sceneSettings?.backgroundColor){
+              const bgHex = currentModel.userData.snapshot.sceneSettings.backgroundColor;
+              const bgColor = new THREE.Color(bgHex.startsWith('#') ? bgHex : '#' + bgHex);
+              scene.background = bgColor;
+              renderer.setClearColor(bgColor);
+              const bgInput = document.getElementById('bgColorPicker');
+              if(bgInput) bgInput.value = bgHex;
+            }
+          } else {
+            const fallback = loadSporeSnapshot(sporeCandidate);
+            if (fallback) scene.add(fallback);
+          }
+        } else { scene.add(currentModel); }
+      } catch (err) { console.error("Error Spore:", err); scene.add(currentModel); }
+
+      // --- Configuración materiales ---
+      currentModel.traverse((child) => {
+        if (child.isMesh && child.material) {
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          mats.forEach(mat => {
+            if (mat.map) { mat.map.anisotropy = renderer.capabilities.getMaxAnisotropy(); mat.map.encoding = THREE.sRGBEncoding; }
+            if (mat.emissiveMap) { mat.emissiveMap.anisotropy = renderer.capabilities.getMaxAnisotropy(); mat.emissiveMap.encoding = THREE.sRGBEncoding; }
+            if (mat.roughnessMap) mat.roughnessMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            if (mat.metalnessMap) mat.metalnessMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            mat.needsUpdate = true;
+          });
+
+
+
+
+
+          
+          const allowButtons = child.userData.materialConfig?.allowConfigButtons;
+          if (allowButtons && !groups[child.uuid]) groups[child.uuid] = [child];
+        }
+      });
+
+
+
+
+      // --- Fondo de escena ---
+      const bgInput = document.getElementById('bgColorPicker');
+      let colorHex = null;
+      currentModel.traverse(child => {
+        if (child.userData?.sceneSettings?.backgroundColor && !colorHex) {
+          colorHex = child.userData.sceneSettings.backgroundColor;
+        }
+      });
+      if (!colorHex && bgInput) colorHex = bgInput.defaultValue;
+      if (colorHex) {
+        const bgColor = new THREE.Color(colorHex.startsWith("#") ? colorHex : "#" + colorHex);
+        scene.background = bgColor;
+        renderer.setClearColor(bgColor);
+        if (bgInput) bgInput.value = colorHex;
+      }
+
+      // --- Restaurar animación ---
+      const animCheck = document.getElementById('anim360Check');
+      const enableAnimCheckbox = document.getElementById('enableAnim');
+      const playBtn = document.getElementById('playAnim');
+      const animTypeSelect = document.getElementById('animType');
+
+      let is360Active = false, isAnimEnabled = false, animDuration = 3, animSpeed = 1, animType = '360';
+
+      currentModel.traverse(child => {
+        const animSettings = child.userData?.sceneSettings?.animationSettings;
+        if (animSettings) {
+          is360Active = child.userData.sceneSettings?.is360Active ?? is360Active;
+          isAnimEnabled = animSettings.animEnabled ?? isAnimEnabled;
+          animDuration = animSettings.animDuration ?? animDuration;
+          animSpeed = animSettings.animSpeed ?? animSpeed;
+          animType = animSettings.animType ?? animType;
+        }
+      });
+
+      if (animCheck) animCheck.checked = is360Active;
+      if (controls) controls.autoRotate = is360Active;
+      if (enableAnimCheckbox) { enableAnimCheckbox.checked = isAnimEnabled; enableAnimCheckbox.dispatchEvent(new Event('change')); }
+      if (playBtn) playBtn.style.display = isAnimEnabled ? 'inline-block' : 'none';
+      if (animTypeSelect) {
+        const exists = Array.from(animTypeSelect.options).some(opt => opt.value === animType);
+        if (!exists && animType !== "") {
+          const opt = document.createElement("option");
+          opt.value = animType;
+          opt.textContent = animType.charAt(0).toUpperCase() + animType.slice(1);
+          animTypeSelect.appendChild(opt);
+        }
+        animTypeSelect.value = animType;
+        animTypeSelect.dispatchEvent(new Event('change'));
+      }
+
+      const animDurationInput = document.getElementById('animDuration');
+      const animSpeedInput = document.getElementById('animSpeed');
+      if (animDurationInput) animDurationInput.value = animDuration;
+      if (animSpeedInput) animSpeedInput.value = animSpeed;
+
+      // --- 🔹 Sincronizar metadatos Purchase ---
+      if (currentModel) {
+        const currentName = currentModel.userData.originalName || currentModel.name || name || "unknown";
+
+        currentModel.traverse(child => {
+          if (child.userData?.purchaseData) {
+            child.userData.purchaseData.modelName = currentName;
+            const base = child.userData.purchaseData.baseUrl || "";
+            const config = child.userData.purchaseData.config ? encodeURIComponent(JSON.stringify(child.userData.purchaseData.config)) : "e30=";
+            child.userData.purchaseData.finalUrl = base ? `${base}?product=${currentName}&config=${config}` : "";
+          }
+        });
+      }
+
+      // --- 🔹 RECONSTRUIR PURCHASE BUTTON SIEMPRE ---
+      const freshBtn = document.getElementById('purchaseBtn');
+      if (freshBtn) {
+          freshBtn.replaceWith(freshBtn.cloneNode(true));
+          const btn = document.getElementById('purchaseBtn');
+
+          let pd = null;
+          currentModel.traverse(child => {
+              if (child.userData?.purchaseData) pd = child.userData.purchaseData;
+          });
+
+          if (pd) {
+              if (togglePurchaseBtnCheck) togglePurchaseBtnCheck.checked = !!pd.active;
+              btn.style.display = 'inline-block';
+              if (purchaseUrlPreview) purchaseUrlPreview.textContent = pd.finalUrl || '';
+              if (purchaseBaseUrlInput) purchaseBaseUrlInput.value = pd.baseUrl || '';
+              btn.textContent = pd.label || 'Comprar / Consolidar';
+              btn.onclick = () => {
+                  if (pd.finalUrl) window.open(pd.finalUrl, "_blank");
+                  else alert("No hay URL de compra configurada.");
+              };
+          }
+      }
+
+ensureShoppingButtonPersistence();
+      setupSporeUIBindings();
+      updateHUD();
+      currentFileName = name; 
+integrateShoppingButton(); 
+addProductToPage(currentModel, currentFileName);
+
+
+
+      // --- Ajuste de cámara ---
+      const box = new THREE.Box3().setFromObject(currentModel);
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z);
+
+      const fov = camera.fov * (Math.PI / 180);
+      let distance = maxDim / (2 * Math.tan(fov / 2)) * 1.5;
+      camera.position.set(center.x + distance, center.y + distance, center.z + distance);
+      camera.lookAt(center);
+      controls.target.copy(center);
+      controls.update();
+      controls.minDistance = maxDim * 0.5;
+      controls.maxDistance = maxDim * 3;
+      controls.enablePan = false;
+
+      document.getElementById("modelName").textContent = name || url.split("/").pop();
+      document.getElementById("modelStatus").textContent = "Listo";
+
+      buildMeshList();
+      animateEntry(currentModel);
+
+      // 🔹 Ejecutar callback cuando el modelo está listo
+      if (typeof onLoaded === "function") onLoaded();
+
+    },
+    (xhr) => {
+      document.getElementById("modelStatus").textContent =
+        "Cargando " + (xhr.loaded / xhr.total * 100).toFixed(0) + "%";
+    },
+    (err) => {
+      alert("Error: " + err.message);
+    }
+  );
+
+}
+
+
+function centerAndScale(obj){
+  const box=new THREE.Box3().setFromObject(obj);
+  const size=new THREE.Vector3(); box.getSize(size);
+  const max=Math.max(size.x,size.y,size.z);
+  const scale=max>2?2/max:1;
+  obj.scale.setScalar(scale);
+  box.setFromObject(obj);
+  const center=new THREE.Vector3(); box.getCenter(center);
+  obj.position.sub(center);
+  obj.position.y-=box.min.y*scale;
+}
+
+document.getElementById('loadBtn').onclick=()=> {
+  const url=document.getElementById('modelUrl').value.trim();
+  if(url) loadGLB(url);
+};
+
+document.getElementById('openFile').onclick=()=>document.getElementById('fileInput').click();
+
+document.getElementById('fileInput').onchange=(e)=>{
+  const f=e.target.files[0]; if(!f) return;
+  loadGLB(URL.createObjectURL(f),f.name);
+};
+
+
+// --- gestión de blogs ---
+let blogTargetMesh = null; 
+
+// --- Helpers ---
+function generarToken() {
+  const fecha = new Date().toISOString().replace(/[-:.]/g, "");
+  return "VH-" + fecha + "-S3D";
+}
+
+async function sha256(text) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+// --- HUD Catálogo ---
+const catalogHUD = document.getElementById("catalogHUD");
+const catalogHUDContent = document.getElementById("catalogHUDContent");
+const toggleBlogHud = document.getElementById("toggleBlogHud");
+
+// Función: mostrar último comentario/sello del modelo activo
+function mostrarUltimoSello(mesh) {
+  if (!mesh) {
+    catalogHUDContent.innerHTML = "<em>No hay modelo activo</em>";
+    return;
+  }
+  const blogs = mesh.userData?.blogs || [];
+  const last = blogs[blogs.length - 1];
+  if (last) {
+    catalogHUDContent.innerHTML = `
+      <strong>${last.text}</strong><br/>
+      <small>${last.author || "Autor desconocido"}</small><br/>
+      <em>${last.desc || ""}</em><br/>
+      <small style="opacity:0.7;">${last.date || ""}</small>
+    `;
+  } else {
+    catalogHUDContent.innerHTML = "<em>Sin entradas en el catálogo</em>";
+  }
+}
+
+// --- Renderiza panel lateral y formulario ---
+function renderBlogPanel(mesh) {
+  blogTargetMesh = mesh;
+  const ui = document.getElementById("panelBlogUI");
+  if (!ui) return;
+  ui.innerHTML = ""; // limpiar
+
+  // Cabecera
+  const header = document.createElement("div");
+  header.innerHTML = `<p><strong>Mesh:</strong> ${mesh.name || mesh.uuid}</p>`;
+  ui.appendChild(header);
+
+  // Lista de entradas
+  const list = document.createElement("div");
+  list.id = "blogEntriesList";
+  list.style.marginTop = "8px";
+  const blogs = mesh.userData.blogs || [];
+  if (blogs.length === 0) {
+    list.innerHTML = '<p style="font-style:italic;color:#666">No hay entradas aún.</p>';
+  } else {
+    blogs.forEach((b, idx) => {
+      const item = document.createElement("div");
+      item.className = "particle-item";
+      item.style.padding = "8px";
+      item.style.marginBottom = "6px";
+      item.innerHTML = `
+        <div style="font-weight:600;margin-bottom:4px">#${idx + 1} · ${b.text}</div>
+        <div style="font-size:12px;color:#444">
+          <strong>Autor:</strong> ${b.author} — <strong>Fecha:</strong> ${b.date}
+        </div>
+        <div style="font-size:12px;color:#666;margin-top:6px">${b.desc || ""}</div>
+      `;
+      list.appendChild(item);
+    });
+  }
+  ui.appendChild(list);
+
+  // Formulario para nueva entrada
+  const form = document.createElement("div");
+  form.style.marginTop = "10px";
+  form.innerHTML = `
+    <input id="blogTitleInput" placeholder="Título / SKU" style="width:100%;margin-bottom:6px;padding:6px" />
+    <input id="blogAuthorInput" placeholder="Autor / Marca" style="width:100%;margin-bottom:6px;padding:6px" />
+    <textarea id="blogDescInput" placeholder="Descripción corta" style="width:100%;margin-bottom:6px;padding:6px;height:72px"></textarea>
+    <input id="blogLinkInput" placeholder="Link (opcional)" style="width:100%;margin-bottom:8px;padding:6px" />
+    <button id="saveBlogEntry" style="width:100%;padding:8px">Comentar</button>
+  `;
+  ui.appendChild(form);
+
+  // Guardar nueva entrada
+  form.querySelector("#saveBlogEntry").onclick = async () => {
+    const text = document.getElementById("blogTitleInput").value.trim() || "Sin título";
+    const author = document.getElementById("blogAuthorInput").value.trim() || "Anónimo";
+    const desc = document.getElementById("blogDescInput").value.trim() || "";
+    const link = document.getElementById("blogLinkInput").value.trim() || "";
+    const date = new Date().toLocaleString();
+    const token = generarToken();
+    const hash = await sha256(text + author + date + token);
+
+    const newEntry = { text, author, desc, link, date, token, hash };
+
+    mesh.userData.blogs = mesh.userData.blogs || [];
+    mesh.userData.blogs.push(newEntry);
+
+    const MAX_BLOCKS = 200;
+    if (mesh.userData.blogs.length > MAX_BLOCKS) mesh.userData.blogs.shift();
+
+    renderBlogPanel(mesh);
+    actualizarHUD();
+  };
+}
+
+// --- Crear sello desde UI ---
+document.getElementById("createCatalogSeal").onclick = async () => {
+  if (!blogTargetMesh) return;
+
+  if (!blogTargetMesh.userData.catalogSeal) {
+    const defaultEntry = {
+      text: "Sello oficial 3D Twins",
+      author: "3D Twins",
+      desc: "Sello de catálogo generado automáticamente",
+      date: new Date().toLocaleString(),
+      token: generarToken(),
+      hash: "",
+    };
+    defaultEntry.hash = await sha256(
+      defaultEntry.text + defaultEntry.author + defaultEntry.date + defaultEntry.token
+    );
+
+    blogTargetMesh.userData.catalogSeal = defaultEntry;
+
+    blogTargetMesh.userData.blogs = blogTargetMesh.userData.blogs || [];
+    const exists = blogTargetMesh.userData.blogs.some(b => b.hash === defaultEntry.hash);
+    if (!exists) blogTargetMesh.userData.blogs.push(defaultEntry);
+
+    renderBlogPanel(blogTargetMesh);
+    actualizarHUD();
+  }
+};
+
+// --- Toggle HUD con checkbox ---
+toggleBlogHud.onchange = () => {
+  if (toggleBlogHud.checked) {
+    if (blogTargetMesh) {
+      mostrarUltimoSello(blogTargetMesh);
+      catalogHUD.style.display = "block";
+    } else {
+      catalogHUDContent.innerHTML = "<em>No hay modelo activo</em>";
+      catalogHUD.style.display = "block";
+    }
+  } else {
+    catalogHUD.style.display = "none";
+  }
+};
+
+// --- Actualizar HUD si ya está visible ---
+function actualizarHUD() {
+  if (toggleBlogHud.checked && blogTargetMesh) {
+    mostrarUltimoSello(blogTargetMesh);
+  }
+}
+
+
+
+const animCheckbox = document.getElementById('enableAnim');
+const animControls = document.getElementById('animControls');
+const animDurationInput = document.getElementById('animDuration');
+const animSpeedInput = document.getElementById('animSpeed');
+
+let animationEnabled = false;
+let animating360 = false;
+let animStartTime = null;
+let initialCameraPos = camera.position.clone();
+let targetCameraPos = new THREE.Vector3();
+
+animCheckbox.onchange = () => {
+  
+  animationEnabled = animCheckbox.checked;
+  animControls.style.display = animationEnabled ? 'block' : 'none';
+};
+
+
+const playBtn = document.getElementById('playAnim');
+playBtn.style.display = animationEnabled ? 'inline-block' : 'none';
+
+animCheckbox.onchange = () => {
+  animationEnabled = animCheckbox.checked;
+  animControls.style.display = animationEnabled ? 'block' : 'none';
+  playBtn.style.display = animationEnabled ? 'inline-block' : 'none';
+};
+
+
+document.getElementById('playAnim').onclick = () => {
+  if (!currentModel || !animationEnabled) return;
+
+  const animType = document.getElementById('animType').value;
+
+  switch(animType) {
+    case '360':
+      start360CameraAnimation();
+      break;
+    case 'hover':
+      startHoverAnimation(currentModel);
+      break;
+    case 'aura':
+      startAuraAnimation(currentModel);
+      break;
+  }
+};
+
+function startHoverAnimation(obj) {
+  if (obj.userData.hovering) return;
+  obj.userData.hovering = true;
+
+  let t = 0;
+  const frames = 200; // podríamos calcularlo en función de duración
+  const amplitude = 0.1;
+  const speed = parseFloat(animSpeedInput.value) || 1;
+  const durationSecs = parseFloat(animDurationInput.value) || 3;
+  const totalFrames = frames * (durationSecs / 3); // escala frames según duración
+
+  const initY = obj.position.y;
+
+  function step() {
+    t++;
+    obj.position.y = initY + Math.sin(t * 0.05 * speed) * amplitude;
+    if (t < totalFrames) requestAnimationFrame(step);
+    else obj.userData.hovering = false;
+  }
+  step();
+}
+
+function startAuraAnimation(obj) {
+  if (obj.userData.auraActive) return;
+  obj.userData.auraActive = true;
+
+  const initPos = obj.position.clone();
+  const initRot = obj.rotation.y;
+  let t = 0;
+  const frames = 300;
+  const speed = parseFloat(animSpeedInput.value) || 1;
+  const durationSecs = parseFloat(animDurationInput.value) || 3;
+  const totalFrames = frames * (durationSecs / 3); // ajusta duración
+
+  function step() {
+    t++;
+    obj.position.y = initPos.y + Math.sin(t * 0.05 * speed) * 0.15;
+    obj.rotation.y = initRot + Math.sin(t * 0.02 * speed) * 0.2;
+    if (t < totalFrames) requestAnimationFrame(step);
+    else obj.userData.auraActive = false;
+  }
+
+  step();
+}
+
+
+function start360CameraAnimation(){
+  if(animating360) return;
+  animating360 = true;
+  animStartTime = null;
+
+  const startPos = camera.position.clone();
+  const startTarget = controls.target.clone();
+
+  const durationSecs = parseFloat(animDurationInput.value) || 3;
+  const speed = parseFloat(animSpeedInput.value) || 1;
+
+  function step(timestamp){
+    if(!animStartTime) animStartTime = timestamp;
+    const elapsed = (timestamp - animStartTime)/1000 * speed;
+    const alpha = elapsed / durationSecs;
+    const angle = alpha * 2 * Math.PI;
+
+    const radius = startPos.distanceTo(startTarget);
+    camera.position.x = startTarget.x + radius * Math.sin(angle);
+    camera.position.z = startTarget.z + radius * Math.cos(angle);
+    camera.position.y = startPos.y; // mantener altura original
+    controls.update();
+
+    if(alpha < 1) requestAnimationFrame(step);
+    else animating360 = false;
+  }
+
+  requestAnimationFrame(step);
+}
+
+
+function animateEntry(obj){
+  let t=0;
+  const duration=60;
+  const initPos = obj.position.clone();
+  const initScale = obj.scale.clone();
+  obj.position.y -= 1;
+  obj.scale.set(0.5,0.5,0.5);
+  function step(){
+    if(t>=duration) return;
+    t++;
+    const alpha = t/duration;
+    obj.position.lerpVectors(new THREE.Vector3(initPos.x, initPos.y-1, initPos.z), initPos, alpha);
+    obj.scale.lerpVectors(new THREE.Vector3(0.5,0.5,0.5), initScale, alpha);
+    requestAnimationFrame(step);
+  }
+  step();
+}
+
+
+
+canvas.addEventListener('dblclick', e => {
+  if (!currentModel) return;
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(currentModel.children, true);
+  if (hits.length) {
+    const mesh = hits[0].object;
+
+    let showMenu = false;
+    Object.keys(groups).forEach(parentId=>{
+      const group = groups[parentId];
+      if(group.includes(mesh)){
+        const parentLabel = document.querySelector(`label[data-uuid='${parentId}'] input[type=checkbox]`);
+        if(parentLabel && parentLabel.checked) showMenu = true;
+      }
+    });
+
+    const meshCheckbox = document.querySelector(`label[data-uuid='${mesh.uuid}'] input[type=checkbox]`);
+    if(meshCheckbox && meshCheckbox.checked) showMenu = true;
+
+    if(showMenu){
+      selectedMesh = mesh;
+      selectedMeshGroup = [mesh];
+      showFloatMenu(selectedMeshGroup);
+
+      if (outlineMesh) { scene.remove(outlineMesh); outlineMesh=null; }
+      const edges = new THREE.EdgesGeometry(selectedMesh.geometry);
+      outlineMesh = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xff0000 }));
+      outlineMesh.position.copy(selectedMesh.getWorldPosition(new THREE.Vector3()));
+      outlineMesh.quaternion.copy(selectedMesh.getWorldQuaternion(new THREE.Quaternion()));
+      outlineMesh.scale.copy(selectedMesh.getWorldScale(new THREE.Vector3()));
+      scene.add(outlineMesh);
+    }
+  }
+});// Variables globales para mantener estado
+let selectedBaseColor = null;
+let selectedTextureUrl = null;
+const textureSettings = {}; 
+
+
+function showFloatMenu(meshes){
+    const menu = document.getElementById('floatMenu');
+    menu.style.display='block';
+
+    // --- Botón de cerrar ---
+    let closeBtn = document.getElementById('floatCloseBtn');
+    if(!closeBtn){
+        closeBtn = document.createElement('button');
+        closeBtn.id = 'floatCloseBtn';
+        closeBtn.textContent = '✖'; // puedes poner "Cerrar" si quieres
+        closeBtn.style.position = 'absolute';
+        closeBtn.style.top = '5px';
+        closeBtn.style.right = '5px';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.style.background = 'black';
+        closeBtn.style.border = 'none';
+        closeBtn.style.fontSize = '16px';
+        closeBtn.style.fontWeight = 'bold';
+        closeBtn.addEventListener('click', ()=>{
+            menu.style.display='none';
+        });
+        menu.appendChild(closeBtn);
+    }
+
+    const texInput = document.getElementById('floatTexture');
+
+    if(!meshes.length) return;
+    const mesh = meshes[0];
+    const config = mesh.userData.materialConfig || { colors: [], allowTexture: true };
+
+    // --- Limpiar contenido anterior ---
+    let swatchContainer = document.getElementById('floatSwatches');
+    if(!swatchContainer){
+        swatchContainer = document.createElement('div');
+        swatchContainer.id = 'floatSwatches';
+        swatchContainer.style.display='flex';
+        swatchContainer.style.flexDirection='column';
+        swatchContainer.style.gap='8px';
+        menu.appendChild(swatchContainer);
+    }
+    swatchContainer.innerHTML='';
+
+    // --- Línea 1: Colores base ---
+    const baseColorLine = document.createElement('div');
+    baseColorLine.style.display='flex';
+    baseColorLine.style.gap='6px';
+    config.colors.forEach(color=>{
+        const sw = document.createElement('div');
+        sw.style.width='30px';
+        sw.style.height='30px';
+        sw.style.background=color;
+        sw.style.border='2px solid #666';
+        sw.style.borderRadius='50px';
+        sw.style.cursor='pointer';
+        sw.addEventListener('click', ()=>{
+            selectedBaseColor = color;
+            applyColorToSelectedMeshes(selectedBaseColor, selectedTextureUrl);
+            highlightLineSelection(baseColorLine, sw);
+        });
+        baseColorLine.appendChild(sw);
+    });
+    swatchContainer.appendChild(baseColorLine);
+
+    // --- Línea 2: Texturas ---
+    const textureLine = document.createElement('div');
+    textureLine.style.display='flex';
+    textureLine.style.gap='6px';
+    swatchContainer.appendChild(textureLine);
+
+    Object.keys(textureSettings).forEach(url=>{
+        const texSw = createTextureSwatch(url, textureLine);
+        if(selectedTextureUrl === url) highlightLineSelection(textureLine, texSw);
+    });
+
+    if(config.allowTexture){
+        texInput.disabled = false;
+        texInput.onchange = ()=>{
+            const file = texInput.files[0];
+            if(!file) return;
+            const url = URL.createObjectURL(file);
+            textureSettings[url] = {offsetX:0, offsetY:0, scaleX:1, scaleY:1, copiesX:1, copiesY:1};
+            const texSw = createTextureSwatch(url, textureLine);
+            selectedTextureUrl = url;
+            applyColorToSelectedMeshes(selectedBaseColor, selectedTextureUrl);
+            highlightLineSelection(textureLine, texSw);
+        };
+    } else {
+        texInput.disabled = true;
+    }
+
+    menu.querySelector('h4').textContent = `Editar material ${mesh.name || mesh.uuid}`;
+
+    showTextureEditor(menu, selectedTextureUrl);
+}
+
+
+// Crear swatch de textura
+function createTextureSwatch(url, container){
+    const texSw = document.createElement('div');
+    texSw.style.width='30px';
+    texSw.style.height='30px';
+    texSw.style.background='#ffffff';
+    texSw.style.border='2px solid #666';
+    texSw.style.borderRadius='50px';
+    texSw.style.cursor='pointer';
+    texSw.title = url.split('/').pop();
+    texSw.dataset.texUrl = url;
+    texSw.addEventListener('click', ()=>{
+        selectedTextureUrl = url;
+        applyColorToSelectedMeshes(selectedBaseColor, selectedTextureUrl);
+        highlightLineSelection(container, texSw);
+        showTextureEditor(document.getElementById('floatMenu'), selectedTextureUrl);
+    });
+    container.appendChild(texSw);
+    return texSw;
+}
+
+// Resaltar swatch seleccionado dentro de la línea
+function highlightLineSelection(line, selected){
+    line.querySelectorAll('div').forEach(s=>s.style.outline='');
+    selected.style.outline='2px solid #000';
+}
+
+// --- Aplicar color y textura ---
+function applyColorToSelectedMeshes(baseColor, texUrl = null) {
+    selectedMeshGroup.forEach(mesh => {
+        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+
+        mats.forEach(mat => {
+            // 🟢 Caso 1: si no hay textura nueva, solo cambiamos el color existente
+            if (!texUrl) {
+                if (mat && mat.color) {
+                    mat.color.set(baseColor || 0xffffff);
+                    mat.needsUpdate = true;
+                } else {
+                    mesh.material = new THREE.MeshStandardMaterial({ color: baseColor || 0xffffff });
+                }
+                return;
+            }
+
+            // 🟣 Caso 2: si hay textura nueva, la cargamos pero mantenemos las propiedades originales
+            if (!textureSettings[texUrl]) {
+                textureSettings[texUrl] = {
+                    scaleX: 1,
+                    scaleY: 1,
+                    offsetX: 0,
+                    offsetY: 0,
+                    copiesX: 1,
+                    copiesY: 1
+                };
+            }
+
+            const settings = textureSettings[texUrl];
+            settings.scaleX = Math.min(Math.max(settings.scaleX, 0.00005), 200);
+            settings.scaleY = Math.min(Math.max(settings.scaleY, 0.00005), 200);
+
+            const maxOffsetRange = 0.75 / Math.min(settings.scaleX, settings.scaleY);
+            settings.offsetX = Math.min(Math.max(settings.offsetX, -maxOffsetRange), maxOffsetRange);
+            settings.offsetY = Math.min(Math.max(settings.offsetY, -maxOffsetRange), maxOffsetRange);
+
+            new THREE.TextureLoader().load(texUrl, texture => {
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+
+                const centeredOffsetX = 0.5 - (settings.scaleX / 2) + settings.offsetX;
+                const centeredOffsetY = 0.5 - (settings.scaleY / 2) + settings.offsetY;
+
+                texture.repeat.set(settings.scaleX, settings.scaleY);
+                texture.offset.set(
+                    THREE.MathUtils.clamp(centeredOffsetX, -1.5, 1.5),
+                    THREE.MathUtils.clamp(centeredOffsetY, -1.5, 1.5)
+                );
+
+                texture.needsUpdate = true;
+
+                // ✅ En lugar de crear un material nuevo, actualizamos el existente
+                if (mat) {
+                    mat.map = texture;
+                    if (baseColor) mat.color.set(baseColor);
+                    mat.transparent = true;
+                    mat.needsUpdate = true;
+
+                    // 🎨 Mezcla el color base con la textura sin perder transparencia
+                    mat.onBeforeCompile = shader => {
+                        shader.fragmentShader = shader.fragmentShader.replace(
+                            '#include <map_fragment>',
+                            `
+                            vec4 texelColor = texture2D(map, vUv);
+                            diffuseColor.rgb = mix(diffuseColor.rgb, texelColor.rgb, texelColor.a);
+                            `
+                        );
+                    };
+                } else {
+                    mesh.material = new THREE.MeshStandardMaterial({
+                        color: baseColor || 0xffffff,
+                        map: texture,
+                        transparent: true
+                    });
+                }
+            });
+        });
+    });
+}
+
+
+// --- Editor de textura ---
+function showTextureEditor(menu, texUrl){
+    let editor = document.getElementById('textureEditor');
+    if(!editor){
+        editor = document.createElement('div');
+        editor.id = 'textureEditor';
+        editor.style.display='flex';
+        editor.style.gap='6px';
+        editor.style.padding='6px';
+        editor.style.background='rgba(0,0,0,0.7)';
+        editor.style.borderRadius='6px';
+        editor.style.color='#fff';
+        menu.appendChild(editor);
+    }
+    editor.innerHTML='';
+
+    if(!texUrl) return;
+
+    const settings = textureSettings[texUrl];
+
+    // Desplazar X
+    const inputX = document.createElement('input');
+    inputX.type='range';
+    inputX.min=-0.5; inputX.max=0.5; inputX.step=0.01; inputX.value=settings.offsetX;
+    inputX.title='Desplazar X';
+    inputX.oninput = ()=>{
+        settings.offsetX = parseFloat(inputX.value);
+        applyColorToSelectedMeshes(selectedBaseColor, texUrl);
+    };
+    editor.appendChild(inputX);
+
+    // Desplazar Y
+    const inputY = document.createElement('input');
+    inputY.type='range';
+    inputY.min=-0.5; inputY.max=0.5; inputY.step=0.01; inputY.value=settings.offsetY;
+    inputY.title='Desplazar Y';
+    inputY.oninput = ()=>{
+        settings.offsetY = parseFloat(inputY.value);
+        applyColorToSelectedMeshes(selectedBaseColor, texUrl);
+    };
+    editor.appendChild(inputY);
+
+    // Escala X
+    const scaleX = document.createElement('input');
+    scaleX.type='range';
+    scaleX.min=0.01; scaleX.max=2; scaleX.step=0.01; scaleX.value=settings.scaleX;
+    scaleX.title='Escala X';
+    scaleX.oninput = ()=>{
+        settings.scaleX = parseFloat(scaleX.value);
+        applyColorToSelectedMeshes(selectedBaseColor, texUrl);
+    };
+    editor.appendChild(scaleX);
+
+    // Escala Y
+    const scaleY = document.createElement('input');
+    scaleY.type='range';
+    scaleY.min=0.01; scaleY.max=2; scaleY.step=0.01; scaleY.value=settings.scaleY;
+    scaleY.title='Escala Y';
+    scaleY.oninput = ()=>{
+        settings.scaleY = parseFloat(scaleY.value);
+        applyColorToSelectedMeshes(selectedBaseColor, texUrl);
+    };
+    editor.appendChild(scaleY);
+
+    // Copias X
+    const copiesX = document.createElement('input');
+    copiesX.type='number';
+    copiesX.min=1; copiesX.max=10; copiesX.step=1; copiesX.value=settings.copiesX;
+    copiesX.title='Copias X';
+    copiesX.onchange = ()=>{
+        settings.copiesX = parseInt(copiesX.value);
+        applyColorToSelectedMeshes(selectedBaseColor, texUrl);
+    };
+    editor.appendChild(copiesX);
+
+    // Copias Y
+    const copiesY = document.createElement('input');
+    copiesY.type='number';
+    copiesY.min=1; copiesY.max=10; copiesY.step=1; copiesY.value=settings.copiesY;
+    copiesY.title='Copias Y';
+    copiesY.onchange = ()=>{
+        settings.copiesY = parseInt(copiesY.value);
+        applyColorToSelectedMeshes(selectedBaseColor, texUrl);
+    };
+    editor.appendChild(copiesY);
+}
+
+// --- Helper para etiquetar inputs ---
+function labelWithText(text, input){
+  const container = document.createElement('div');
+  container.style.display='flex';
+  container.style.alignItems='center';
+  container.style.gap='4px';
+  const label = document.createElement('span');
+  label.textContent = text;
+  container.appendChild(label);
+  container.appendChild(input);
+  return container;
+}
+
+
+function buildMeshList(){
+  const list = document.getElementById('meshList');
+  list.innerHTML='';
+  if(!currentModel) return;
+  currentModel.traverse(n=>{
+    if(n.isMesh){
+      const node = createMeshNode(n);
+      list.appendChild(node);
+    }
+  });
+}
+
+function createMeshNode(mesh){
+  const label = document.createElement('label');
+  label.draggable = true;
+  label.dataset.uuid = mesh.uuid;
+
+  const nameSpan = document.createElement('span');
+  nameSpan.textContent = mesh.name || mesh.uuid;
+  label.appendChild(nameSpan);
+
+  const checkbox = document.createElement('input');
+  checkbox.type='checkbox';
+  label.appendChild(checkbox);
+
+  // Botón renombrar
+  const renameBtn = document.createElement('button');
+  renameBtn.textContent = 'Name';
+  renameBtn.style.marginLeft = '6px';
+  renameBtn.style.fontSize = '12px';
+  renameBtn.onclick = (e)=>{
+    e.stopPropagation();
+    const newName = prompt('Nuevo nombre:', mesh.name || '');
+    if(newName && newName.trim() !== ''){
+      mesh.name = newName.trim();
+      nameSpan.textContent = mesh.name;
+      updateHUD();
+      if(selectedMeshGroup && selectedMeshGroup.includes(mesh)) showFloatMenu(selectedMeshGroup);
+    }
+  };
+  label.appendChild(renameBtn);
+
+  // Botón Editar Configuración (menú inferior)
+  const editConfigBtn = document.createElement('button');
+  editConfigBtn.textContent = 'Editar Config';
+  editConfigBtn.style.marginLeft = '4px';
+  editConfigBtn.style.fontSize = '12px';
+  editConfigBtn.onclick = e=>{
+    e.stopPropagation();
+    openEditConfigMenuInferior(mesh);
+  };
+  label.appendChild(editConfigBtn);
+
+  const childrenContainer = document.createElement('div');
+  childrenContainer.className='children';
+  label.appendChild(childrenContainer);
+
+  // --- Drag & Drop ---
+  label.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', mesh.uuid); });
+  label.addEventListener('dragover', e => e.preventDefault());
+  label.addEventListener('drop', e => {
+    e.preventDefault();
+    const draggedId = e.dataTransfer.getData('text/plain');
+    if(draggedId===mesh.uuid) return;
+    const draggedMesh = currentModel.getObjectByProperty('uuid', draggedId);
+
+    Object.keys(groups).forEach(parentId=>{
+      groups[parentId] = groups[parentId].filter(m=>m.uuid!==draggedId);
+      if(groups[parentId].length===0) delete groups[parentId];
+    });
+
+    if(!groups[mesh.uuid]) groups[mesh.uuid] = [mesh];
+    if(!groups[mesh.uuid].includes(draggedMesh)) groups[mesh.uuid].push(draggedMesh);
+
+    const draggedLabel = document.querySelector(`label[data-uuid='${draggedId}']`);
+    if(draggedLabel) childrenContainer.appendChild(draggedLabel);
+
+    updateHUD();
+  });
+
+  // --- Checkbox ---
+  checkbox.addEventListener('change', e=>{
+    const checked = e.target.checked;
+    if(checked){
+      if(!groups[mesh.uuid]) groups[mesh.uuid] = [mesh];
+      updateHUD();
+    } else {
+      delete groups[mesh.uuid];
+      updateHUD();
+    }
+  });
+
+  return label;
+}
+
+// === Menú inferior para Edit Config ===
+function openEditConfigMenuInferior(mesh) {
+  let menu = document.getElementById('bottomConfigMenu');
+  if (!menu) {
+    menu = document.createElement('div');
+    menu.id = 'bottomConfigMenu';
+    menu.style.position = 'fixed';
+    menu.style.left = '0';
+    menu.style.bottom = '0';
+    menu.style.width = '100%';
+    menu.style.background = '#fff';
+    menu.style.padding = '16px';
+    menu.style.borderTop = '2px solid #ccc';
+    menu.style.display = 'flex';
+    menu.style.alignItems = 'center';
+    menu.style.gap = '12px';
+    menu.style.zIndex = '1500';
+    document.body.appendChild(menu);
+  }
+  menu.innerHTML = ''; // limpiar contenido anterior
+
+  const config = mesh.userData.materialConfig || { colors: [], allowTexture: true };
+
+  // --- Título ---
+  const title = document.createElement('h4');
+  title.textContent = `Configurar ${mesh.name || mesh.uuid}`;
+  title.style.marginRight = '12px';
+  menu.appendChild(title);
+
+  // --- Contenedor de colores (swatches) ---
+  const swatchContainer = document.createElement('div');
+  swatchContainer.style.display = 'flex';
+  swatchContainer.style.flexWrap = 'wrap';
+  swatchContainer.style.gap = '6px';
+  swatchContainer.style.maxHeight = '80px';
+
+  // Función para renderizar los colores y permitir borrarlos
+  function renderSwatches() {
+    swatchContainer.innerHTML = '';
+    config.colors.forEach(color => {
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'relative';
+      wrapper.style.display = 'inline-block';
+
+      const sw = document.createElement('div');
+      sw.style.width = '30px';
+      sw.style.height = '30px';
+      sw.style.background = color;
+      sw.style.border = '2px solid #666';
+      sw.style.borderRadius = '4px';
+      sw.style.cursor = 'pointer';
+      sw.classList.add('selected');
+      sw.addEventListener('click', () => sw.classList.toggle('selected'));
+      wrapper.appendChild(sw);
+
+      // Botón de eliminar (❌)
+      const del = document.createElement('button');
+      del.textContent = '×';
+      del.style.position = 'absolute';
+      del.style.top = '-6px';
+      del.style.right = '-6px';
+      del.style.width = '16px';
+      del.style.height = '16px';
+      del.style.border = 'none';
+      del.style.background = '#f44';
+      del.style.color = 'white';
+      del.style.borderRadius = '50%';
+      del.style.cursor = 'pointer';
+      del.style.fontSize = '12px';
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        config.colors = config.colors.filter(c => c !== color);
+        renderSwatches();
+      });
+      wrapper.appendChild(del);
+
+      swatchContainer.appendChild(wrapper);
+    });
+  }
+
+  renderSwatches();
+  menu.appendChild(swatchContainer);
+
+  // --- Input para añadir color ---
+  const newColorInput = document.createElement('input');
+  newColorInput.type = 'color';
+  newColorInput.value = '#ffffff';
+  newColorInput.onchange = () => {
+    const newColor = newColorInput.value;
+    if (!config.colors.includes(newColor)) {
+      config.colors.push(newColor);
+      renderSwatches();
+    }
+  };
+  menu.appendChild(newColorInput);
+
+  // --- Checkbox permitir textura ---
+  const allowTex = document.createElement('input');
+  allowTex.type = 'checkbox';
+  allowTex.checked = config.allowTexture;
+  const allowLabel = document.createElement('label');
+  allowLabel.textContent = 'Permitir carga de textura';
+  allowLabel.style.marginLeft = '6px';
+  allowLabel.prepend(allowTex);
+  menu.appendChild(allowLabel);
+
+  // --- Botones inferiores ---
+  const btnContainer = document.createElement('div');
+  btnContainer.style.marginLeft = '12px';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Guardar';
+  saveBtn.onclick = () => {
+    // 1️⃣ Guardar colores seleccionados
+    const colors = [];
+    swatchContainer.querySelectorAll('div > div.selected').forEach(sw => {
+      colors.push(sw.style.background);
+    });
+
+    // 2️⃣ Revisar materiales y sus URLs
+    const materials = [];
+    if (mesh.material) {
+      if (Array.isArray(mesh.material)) {
+        mesh.material.forEach(mat => {
+          materials.push({
+            name: mat.name,
+            mapUrl: mat.map?.image?.src || null
+          });
+        });
+      } else {
+        materials.push({
+          name: mesh.material.name,
+          mapUrl: mesh.material.map?.image?.src || null
+        });
+      }
+    }
+
+    // 3️⃣ Guardar todo en userData
+    mesh.userData.materialConfig = {
+      colors,
+      allowTexture: allowTex.checked,
+      allowConfigButtons: true,
+      modelUrl: mesh.userData?.modelUrl || null,
+      materials
+    };
+
+    // 4️⃣ Actualizar Float si el mesh está seleccionado
+    if (selectedMeshGroup && selectedMeshGroup.includes(mesh)) {
+      showFloatMenu(selectedMeshGroup);
+    }
+  };
+
+  btnContainer.appendChild(saveBtn);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = 'Cerrar';
+  closeBtn.style.marginLeft = '8px';
+  closeBtn.onclick = () => { menu.style.display = 'none'; };
+  btnContainer.appendChild(closeBtn);
+
+  menu.appendChild(btnContainer);
+
+  menu.style.display = 'flex';
+}
+
+
+
+
+
+
+function updateHUD() {
+  const hud = document.getElementById('hudButtons');
+  if (!hud) return;
+
+
+  // Limpiar solo los botones de edición
+  Array.from(hud.querySelectorAll('.hud-btn')).forEach(btn => btn.remove());
+
+  // Crear botones de edición
+  Object.keys(groups).forEach(key => {
+    const btn = document.createElement('button');
+    const mesh = currentModel.getObjectByProperty('uuid', key);
+    if (mesh) btn.textContent = `Editar ${mesh.name || key}`;
+    btn.className = 'hud-btn';
+    btn.onclick = () => { 
+      selectedMeshGroup = groups[key]; 
+      showFloatMenu(selectedMeshGroup); 
+    };
+    hud.appendChild(btn);
+  });
+}
+
+
+
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape'){
+    selectedMesh=null;
+    selectedMeshGroup=null;
+    document.getElementById('floatMenu').style.display='none';
+    if(outlineMesh){ scene.remove(outlineMesh); outlineMesh=null; }
+  }
+});
+
+
+
+async function generateModelHashAndToken(model) {
+  const encoder = new TextEncoder();
+  const modelData = JSON.stringify(model.userData || {});
+  const data = encoder.encode(modelData);
+
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+  const token = crypto.randomUUID();
+
+  model.userData = {
+    ...model.userData,
+    token,
+    hash: hashHex
+  };
+
+  // Opcional: si quieres que cada mesh también tenga su hash individual
+  model.traverse(obj => {
+    if (obj.isMesh) {
+      const meshData = JSON.stringify(obj.userData || {});
+      const meshEncoded = encoder.encode(meshData);
+      crypto.subtle.digest('SHA-256', meshEncoded).then(meshHashBuf => {
+        const meshHashArray = Array.from(new Uint8Array(meshHashBuf));
+        const meshHashHex = meshHashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        obj.userData.hash = meshHashHex;
+      });
+    }
+  });
+}
+
+
+
+
+
+// ---------- HELPERS (codificación base64 segura para Unicode) ----------
+function base64EncodeUnicode(str) {
+  // safe encode for unicode strings
+  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
+    function(match, p1) { return String.fromCharCode('0x' + p1); }));
+}
+function base64DecodeUnicode(b64) {
+  // decode the above
+  return decodeURIComponent(Array.prototype.map.call(atob(b64), function(c){
+    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+  }).join(''));
+}
+
+function escapeForJS(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+}
+
+// ---------- Re-uso: función que aplica un gltf ya parseado a la escena (mismo flujo que loadGLB) ----------
+function handleParsedGltf(gltf, name = "") {
+  try {
+    // Quitar modelo anterior
+    if (currentModel) scene.remove(currentModel);
+    currentModel = gltf.scene || gltf; // algunos pases devuelven la escena como gltf.scene
+
+    // Guardar URL principal (no hay URL si viene embebido)
+    // Mantener userData si existe (gltf.scene.userData)
+    currentModel.userData = currentModel.userData || {};
+
+    // Marcar nombre original si no existe
+    if (!currentModel.userData.originalName) currentModel.userData.originalName = currentModel.name || name || "unknown";
+
+    // Reset selección / outline
+    selectedMesh = null;
+    selectedMeshGroup = null;
+    if (outlineMesh) { scene.remove(outlineMesh); outlineMesh = null; }
+    const floatMenuEl = document.getElementById('floatMenu');
+    if (floatMenuEl) floatMenuEl.style.display = 'none';
+
+    // limpiar grupos
+    for (const key in groups) delete groups[key];
+    updateHUD();
+
+    // centrar / escalar y añadir
+    centerAndScale(currentModel);
+    scene.add(currentModel);
+
+    // Traversal: texturas, materiales y restaurar grupos por uuid
+    currentModel.traverse((child) => {
+      if (child.isMesh) {
+        if (child.material) {
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          mats.forEach(mat => {
+            if (mat.map) { mat.map.anisotropy = renderer.capabilities.getMaxAnisotropy(); mat.map.encoding = THREE.sRGBEncoding; }
+            if (mat.emissiveMap) { mat.emissiveMap.anisotropy = renderer.capabilities.getMaxAnisotropy(); mat.emissiveMap.encoding = THREE.sRGBEncoding; }
+            if (mat.roughnessMap) mat.roughnessMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            if (mat.metalnessMap) mat.metalnessMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            mat.needsUpdate = true;
+          });
+        }
+
+        // Restaurar botones si están habilitados
+        const allowButtons = child.userData?.materialConfig?.allowConfigButtons;
+        if (allowButtons) {
+          if (!groups[child.uuid]) groups[child.uuid] = [child];
+        }
+      }
+    });
+
+    // --- Restaurar configuración de escena (animación + fondo) ---
+    const bgInput = document.getElementById('bgColorPicker');
+
+    // Buscar sceneSettings primero en currentModel.userData, si no, en subnodos
+    let sceneSettings = currentModel.userData?.sceneSettings;
+    if (!sceneSettings) {
+      currentModel.traverse(child => {
+        if (!sceneSettings && child.userData?.sceneSettings) {
+          sceneSettings = child.userData.sceneSettings;
+        }
+      });
+    }
+
+    // Determinar color final
+    let colorHex = sceneSettings?.backgroundColor ?? null;
+    if (!colorHex && bgInput) colorHex = bgInput.defaultValue || bgInput.value;
+    if (!colorHex) colorHex = "#f1f1f1";
+    if (colorHex && !colorHex.startsWith("#")) colorHex = "#" + colorHex;
+
+    const bgColor = new THREE.Color(colorHex);
+    scene.background = bgColor;
+    renderer.setClearColor(bgColor);
+    if (bgInput) bgInput.value = colorHex;
+
+    // --- Restaurar animación 360 ---
+    const animCheck = document.getElementById('anim360Check');
+    let is360Active = sceneSettings?.is360Active ?? false;
+    if (animCheck) animCheck.checked = is360Active;
+    if (controls) controls.autoRotate = is360Active;
+
+    // --- Restaurar checkbox enableAnim, tipo y mostrar botón playAnim ---
+    const enableAnimCheckbox = document.getElementById('enableAnim');
+    const playBtn = document.getElementById('playAnim');
+    const animTypeSelect = document.getElementById('animType');
+    let isAnimEnabled = sceneSettings?.animationSettings?.animEnabled ?? false;
+    let animDuration = sceneSettings?.animationSettings?.animDuration ?? 3;
+    let animSpeed = sceneSettings?.animationSettings?.animSpeed ?? 1;
+    let animType = sceneSettings?.animationSettings?.animType ?? (sceneSettings?.animationSettings?.animType ?? '360');
+
+    if (enableAnimCheckbox) enableAnimCheckbox.checked = isAnimEnabled;
+    if (enableAnimCheckbox) enableAnimCheckbox.dispatchEvent(new Event('change'));
+    if (playBtn) playBtn.style.display = isAnimEnabled ? 'inline-block' : 'none';
+    if (animTypeSelect) animTypeSelect.value = animType;
+
+    if (isAnimEnabled) {
+      const animDurationInput = document.getElementById('animDuration');
+      const animSpeedInput = document.getElementById('animSpeed');
+      if (animDurationInput) animDurationInput.value = animDuration;
+      if (animSpeedInput) animSpeedInput.value = animSpeed;
+    }
+
+
+
+// --- Refrescar botón de compra tras cada carga ---
+(() => {
+  const purchaseBtn = document.getElementById('purchaseBtn');
+  const togglePurchaseBtnCheck = document.getElementById("togglePurchaseBtnCheck");
+  const purchaseBaseUrlInput = document.getElementById("purchaseBaseUrlInput");
+  const purchaseUrlPreview = document.getElementById("purchaseUrlPreview");
+
+  // Reiniciar el estado del botón y campos
+  if (purchaseBtn) {
+    purchaseBtn.style.display = 'none';
+    purchaseBtn.onclick = null;
+    purchaseBtn.textContent = "Comprar / Consolidar";
+  }
+  if (togglePurchaseBtnCheck) togglePurchaseBtnCheck.checked = false;
+  if (purchaseBaseUrlInput) purchaseBaseUrlInput.value = "";
+  if (purchaseUrlPreview) purchaseUrlPreview.textContent = "";
+
+  // Buscar purchaseData dentro del modelo cargado
+  let pd = null;
+  if (currentModel) {
+    currentModel.traverse(child => {
+      if (child.userData && child.userData.purchaseData) {
+        pd = child.userData.purchaseData;
+      }
+    });
+  }
+
+  if (!pd) return; // no hay purchaseData, no hacemos nada
+
+  // Aplicar datos al panel de compra
+  if (togglePurchaseBtnCheck) togglePurchaseBtnCheck.checked = !!pd.active;
+  if (purchaseBtn) purchaseBtn.style.display = pd.active ? 'inline-block' : 'none';
+  if (purchaseUrlPreview) purchaseUrlPreview.textContent = pd.finalUrl || '';
+  if (purchaseBaseUrlInput) purchaseBaseUrlInput.value = pd.baseUrl || '';
+
+  // Configurar texto y acción del botón
+  if (purchaseBtn) {
+    purchaseBtn.textContent = pd.label || 'Comprar / Consolidar';
+    purchaseBtn.onclick = () => {
+      if (pd.finalUrl) {
+        window.open(pd.finalUrl, "_blank");
+      } else {
+        alert("No hay URL de compra configurada.");
+      }
+    };
+  }
+})();
+
+
+
+      updateHUD();
+      ensureShoppingButtonPersistence();
+      currentFileName = name; 
+integrateShoppingButton(); 
+addProductToPage(currentModel, currentFileName);
+
+      setupSporeUIBindings();
+
+
+    // Ajuste de cámara (misma lógica que en loadGLB)
+    const box = new THREE.Box3().setFromObject(currentModel);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z);
+
+    const fov = camera.fov * (Math.PI / 180);
+    let distance = maxDim / (2 * Math.tan(fov / 2)) * 1.5;
+    camera.position.set(center.x + distance, center.y + distance, center.z + distance);
+    camera.lookAt(center);
+    controls.target.copy(center);
+    controls.update();
+
+    controls.minDistance = maxDim * 0.5;
+    controls.maxDistance = maxDim * 3;
+    controls.enablePan = false;
+
+    const modelNameEl = document.getElementById("modelName");
+    if (modelNameEl) modelNameEl.textContent = name || (currentModel.userData?.modelUrl ? currentModel.userData.modelUrl.split('/').pop() : currentModel.name) || "model";
+
+    const modelStatusEl = document.getElementById("modelStatus");
+    if (modelStatusEl) modelStatusEl.textContent = "Listo";
+
+    buildMeshList && buildMeshList();
+    animateEntry && animateEntry(currentModel);
+  } catch (e) {
+    console.error("Error applying parsed GLTF to scene:", e);
+  }
+}
+
+// ---------- Export handler (genera slot con base64 persistente) ----------
+document.getElementById('exportBtn').onclick = async () => {
+  if (!currentModel) return;
+
+  // 🔄 1. Actualizar datos del Blog antes de exportar
+  // Recorremos la escena para capturar todos los blogs activos en los meshes
+  currentModel.traverse((child) => {
+    if (child.isMesh && child === blogTargetMesh) {
+      // Si el panel blog tiene data no guardada, la sincronizamos
+      const blogs = child.userData.blogs || [];
+
+      // Si el panel lateral tiene inputs activos, capturamos el último
+      const titleEl = document.getElementById('blogTitleInput');
+      const authorEl = document.getElementById('blogAuthorInput');
+      const descEl = document.getElementById('blogDescInput');
+      const linkEl = document.getElementById('blogLinkInput');
+
+      if (titleEl && titleEl.value.trim() !== '') {
+        const text = titleEl.value.trim();
+        const author = authorEl?.value.trim() || 'Anónimo';
+        const desc = descEl?.value.trim() || '';
+        const link = linkEl?.value.trim() || '';
+        const date = new Date().toLocaleString();
+        const token = generarToken();
+        const hash = cryptoRandomHash ? cryptoRandomHash() : Math.random().toString(36).substring(2, 10);
+
+        blogs.push({ text, author, desc, link, date, token, hash });
+      }
+
+      // Guardar blogs actualizados en userData
+      child.userData.blogs = blogs;
+    }
+  });
+
+  // 🔐 2. Generar hash y token antes de exportar (mantén tu función existente)
+  await generateModelHashAndToken(currentModel);
+
+  // 🎨 3. Captura ajustes visuales
+  const animCheck = document.getElementById('anim360Check');
+  const bgInput = document.getElementById('bgColorPicker');
+
+  const is360Active = animCheck ? animCheck.checked : false;
+  const backgroundColor = bgInput
+    ? bgInput.value
+    : renderer.getClearColor(new THREE.Color()).getHexString();
+
+  const enableAnimCheck = document.getElementById('enableAnim');
+  const animTypeSelect = document.getElementById('animType');
+  const animDurationInput = document.getElementById('animDuration');
+  const animSpeedInput = document.getElementById('animSpeed');
+
+  const animEnabled = enableAnimCheck ? enableAnimCheck.checked : false;
+  const animType = animTypeSelect ? animTypeSelect.value : '360';
+  const animDuration = animDurationInput ? parseFloat(animDurationInput.value) || 3 : 3;
+  const animSpeed = animSpeedInput ? parseFloat(animSpeedInput.value) || 1 : 1;
+
+  // Guardar en userData
+  currentModel.userData.sceneSettings = {
+    is360Active,
+    backgroundColor: backgroundColor.startsWith('#') ? backgroundColor : `#${backgroundColor}`,
+    animationSettings: {
+      animEnabled,
+      animType,
+      animDuration,
+      animSpeed
+    }
+  };
+  currentModel.userData.cameraPosition = camera.position.toArray();
+  currentModel.userData.cameraTarget = controls.target.toArray();
+
+// Guardar purchaseData en userData para que se exporte
+if (currentModel.userData.purchaseData) {
+  currentModel.userData.purchaseData = currentModel.userData.purchaseData;
+}
+
+
+  // 🧩 4. Exportar usando tu exporter
+  exporter.parse(
+    currentModel,
+    (gltf) => {
+      const json = JSON.stringify(gltf);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+
+      // link de descarga como tenías
+      const link = document.getElementById('downloadLink');
+      if (link) {
+        link.href = url;
+        link.download = '3dtwins_official.glb';
+        link.textContent = 'Descargar 3dtwins_official';
+      }
+
+      // 🔠 5. Crear base64 persistente (unicode-safe)
+      const base64 = base64EncodeUnicode(json);
+
+      // 🧱 6. Crear slot en biblioteca (si existe)
+      const libraryContainer = document.getElementById('libraryContainer');
+      if (libraryContainer) {
+        // --- Captura snapshot en tiempo real ---
+        const dataURL = renderer.domElement.toDataURL('image/png');
+
+        // --- Crear slot visual ---
+        const slot = document.createElement('div');
+        slot.style.width = "80px";
+        slot.style.height = "80px";
+        slot.style.borderRadius = "50%";
+        slot.style.background = "#eee";
+        slot.style.cursor = "pointer";
+        slot.style.flexShrink = 0;
+        slot.style.display = "flex";
+        slot.style.alignItems = "center";
+        slot.style.justifyContent = "center";
+        slot.title = currentModel.name || 'Modelo Exportado';
+
+        // --- Miniatura ---
+        const img = document.createElement('img');
+        img.src = dataURL; // snapshot real del visor
+        img.style.width = "100%";
+        img.style.height = "100%";
+        img.style.borderRadius = "50%";
+        img.style.objectFit = "cover";
+        img.style.background = "#ccc";
+        slot.appendChild(img);
+
+        // --- Datos del slot ---
+        slot.dataset.modelBase64 = base64;
+        slot.dataset.modelName = currentModel.name || 'Modelo Exportado';
+
+        // --- Click handler: recargar modelo ---
+        slot.onclick = () => {
+          try {
+            const jsonStr = base64DecodeUnicode(slot.dataset.modelBase64);
+            loader.parse(jsonStr, '', (gltfParsed) => {
+              handleParsedGltf(gltfParsed, slot.dataset.modelName);
+            }, (err) => {
+              console.error('Error parseando GLTF desde base64:', err);
+            });
+          } catch (err) {
+            console.error('Error cargando modelo desde base64 slot:', err);
+          }
+        };
+
+        libraryContainer.appendChild(slot);
+      }
+    },
+    { binary: false }
+  );
+};
+
+
+// ---------- Descargar HTML completo (inserta libraryModels actuales) ----------
+document.getElementById('downloadFullHTML')?.addEventListener('click', () => {
+  // Ocultar panel y biblioteca antes de capturar
+  const panel = document.getElementById('panel');
+  const prevDisplayPanel = panel ? panel.style.display : null;
+  if (panel) panel.style.display = 'none';
+
+  const libraryContainer = document.getElementById('libraryContainer');
+  const prevDisplayLibrary = libraryContainer ? libraryContainer.style.display : null;
+  if (libraryContainer) libraryContainer.style.display = 'none';
+
+
+
+
+  // Capturar todo el HTML
+  let fullHTML = document.documentElement.outerHTML;
+
+  // Restaurar panel y biblioteca en la sesión original
+  if (panel) panel.style.display = prevDisplayPanel;
+  if (libraryContainer) libraryContainer.style.display = prevDisplayLibrary;
+
+  // Eliminar bloque de Live Server / WebSocket si existe
+  fullHTML = fullHTML.replace(/\/\/ <\!\[CDATA\[.*?Live reload enabled\..*?\/\/ \]\]>/gs, '');
+
+  // Construir array libraryModels desde el DOM actual
+  const nodes = Array.from(document.querySelectorAll('#libraryContainer > div'));
+  const libs = [];
+  nodes.forEach(node => {
+    const name = node.dataset.modelName || node.title || node.getAttribute('title') || 'Model';
+    if (node.dataset.modelBase64) {
+      // ya está base64 (persistente): lo exportamos como data:application/json;base64,...
+      const src = 'data:application/json;base64,' + node.dataset.modelBase64;
+      libs.push({ name: escapeForJS(name), src: src });
+    } else if (node.dataset.src) {
+      // si existe data-src (si configuraste) lo usamos
+      libs.push({ name: escapeForJS(name), src: escapeForJS(node.dataset.src) });
+    } else {
+      // fallback: no tenemos src, ignorar
+    }
+  });
+
+  // Reemplazar const libraryModels = [...] en el HTML final por la versión actual
+  const libraryRegex = /const libraryModels = \[[\s\S]*?\];/m;
+  if (libs.length > 0 && libraryRegex.test(fullHTML)) {
+    const libsString = 'const libraryModels = [\n' +
+      libs.map(l => `  { name: "${l.name}", src: "${l.src}" }`).join(',\n') +
+      '\n];';
+    fullHTML = fullHTML.replace(libraryRegex, libsString);
+  }
+
+  // Descargar
+  const blob = new Blob([fullHTML], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '3dtwinsVisor.html';
+  a.click();
+});
+
+
+const ambientSlider = document.getElementById("ambientIntensity");
+const daySlider = document.getElementById("dayLightIntensity");
+const keySlider = document.getElementById("keyLightIntensity");
+const fillSlider = document.getElementById("fillLightIntensity");
+const rimSlider = document.getElementById("rimLightIntensity");
+const topSlider = document.getElementById("topLightIntensity");
+
+
+ambientSlider.addEventListener("input", ()=> ambient.intensity = parseFloat(ambientSlider.value));
+daySlider.addEventListener("input", ()=> dayLight.intensity = parseFloat(daySlider.value));
+keySlider.addEventListener("input", ()=> keyLight.intensity = parseFloat(keySlider.value));
+fillSlider.addEventListener("input", ()=> fillLight.intensity = parseFloat(fillSlider.value));
+rimSlider.addEventListener("input", ()=> rimLight.intensity = parseFloat(rimSlider.value));
+topSlider.addEventListener("input", ()=> topLight.intensity = parseFloat(topSlider.value));
+
+
+
+
+function crearSporeLibrary(modelsArray) {
+  const spore = new THREE.Object3D();
+  spore.name = "SporeLibrary";
+
+  spore.userData.libraryTokens = modelsArray.map(model => {
+    return {
+      name: model.userData.name,
+      modelUrl: model.userData.modelUrl,
+      token: model.userData.token,
+      materialConfig: model.userData.materialConfig,
+      sceneSettings: model.userData.sceneSettings,
+      animationSettings: model.userData.animationSettings
+    };
+  });
+
+  scene.add(spore);
+  return spore;
+}
+
+// --- Descargar GLB de la partícula ---
+function descargarSporeLibrary(spore) {
+  const exporter = new THREE.GLTFExporter();
+  exporter.parse(
+    spore,
+    gltf => {
+      const blob = new Blob([gltf instanceof ArrayBuffer ? gltf : JSON.stringify(gltf)], { type: "application/octet-stream" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "SporeLibrary.glb";
+      link.click();
+    },
+    { binary: true }
+  );
+}
+
+// --- Obtener modelos de la librería ---
+function obtenerModelosDeLaBiblioteca() {
+  return scene.children.filter(obj => obj.userData && obj.userData.token);
+}
+
+// --- Inicialización ---
+const btn = document.getElementById("descargarLibrary");
+btn.onclick = () => {
+  const libraryModels = obtenerModelosDeLaBiblioteca();
+  const spore = crearSporeLibrary(libraryModels);
+  descargarSporeLibrary(spore);
+};
+
+
+
+// ---------------------- Spore / Particle-memory utilities ----------------------
+
+const SPORE_GROUP_NAME = "ParticleMemory_Spore";
+
+// Convierte la "snapshot" de metadatos del modelo en JSON
+function buildModelSnapshot(model) {
+  if (!model) return {};
+  const meshes = [];
+  model.traverse((child) => {
+    if (child.isMesh) {
+      meshes.push({
+        uuid: child.uuid,
+        name: child.name,
+        userData: child.userData || {},
+      });
+    }
+  });
+  return {
+    timestamp: new Date().toISOString(),
+    modelUserData: model.userData || {},
+    meshes,
+    camera: {
+      position: camera.position.toArray(),
+      target: controls ? controls.target.toArray() : [0, 0, 0],
+    },
+    sceneSettings: model.userData?.sceneSettings || {},
+  };
+}
+
+function encodeModelToSpore(model, options = {}) {
+  const { chunkSize = 128 } = options;
+  if (!model) return console.warn("No hay modelo para codificar en Spore.");
+
+  // eliminar spore existente
+  const existing = scene.getObjectByName(SPORE_GROUP_NAME);
+  if (existing) scene.remove(existing);
+
+  // Snapshot ligero: solo userData, nombres de meshes y URL
+  const snapshot = {
+    timestamp: new Date().toISOString(),
+    modelUrl: model.userData?.modelUrl || "", // URL del GLB original
+    modelName: model.name || "model",
+    meshes: [],
+    camera: camera ? {
+      position: camera.position.toArray(),
+      target: controls ? controls.target.toArray() : [0,0,0]
+    } : null
+  };
+
+  model.traverse((child) => {
+    if (child.isMesh) {
+      snapshot.meshes.push({
+        name: child.name,
+        userData: child.userData || {}
+      });
+    }
+  });
+
+  // Convertir snapshot a JSON y dividir en chunks
+  const json = JSON.stringify(snapshot);
+  const encoder = new TextEncoder();
+  const dataBytes = encoder.encode(json);
+
+  const group = new THREE.Group();
+  group.name = SPORE_GROUP_NAME;
+  group.userData = {
+    sporeVersion: 2,
+    isSpore: true,
+    chunkSize,
+    totalBytes: dataBytes.length,
+    sporeData: structuredClone(snapshot)
+  };
+
+  let index = 0, particleIndex = 0;
+  while (index < dataBytes.length) {
+    const end = Math.min(index + chunkSize, dataBytes.length);
+    const slice = dataBytes.slice(index, end);
+    const base64 = btoa(String.fromCharCode(...slice));
+
+    const particle = new THREE.Mesh(
+      new THREE.SphereGeometry(0.005, 4, 4),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+
+    particle.userData = {
+      _spore_chunk_index: particleIndex,
+      _spore_chunk_base64: base64
+    };
+
+    group.add(particle);
+    index = end;
+    particleIndex++;
+  }
+
+  group.userData._spore_chunk_count = particleIndex;
+  scene.add(group);
+
+  console.log(`Spore creada: ${group.name} (${particleIndex} chunks, ${dataBytes.length} bytes)`);
+  return group;
+}
+
+
+function decodeSporeToSnapshot(sporeGroup) {
+  // Si no se pasa, intenta encontrar el grupo por nombre
+  sporeGroup = sporeGroup || scene.getObjectByName(SPORE_GROUP_NAME);
+  if (!sporeGroup) return null;
+
+  // 1) Si ya hay snapshot en userData, devuélvelo directamente
+  if (sporeGroup.userData && sporeGroup.userData.snapshot) {
+    try {
+      return structuredClone(sporeGroup.userData.snapshot);
+    } catch (e) {
+      return sporeGroup.userData.snapshot;
+    }
+  }
+
+  // 2) Si existe sporeData en userData, devolverlo (compatibilidad)
+  if (sporeGroup.userData && sporeGroup.userData.sporeData) {
+    return structuredClone(sporeGroup.userData.sporeData);
+  }
+
+  // 3) Si no, intentar reconstruir a partir de chunks en sus hijos
+  // Buscar hijos que tengan _spore_chunk_base64 (puede que no sean directos)
+  const chunkNodes = [];
+  sporeGroup.traverse((ch) => {
+    if (ch.userData && typeof ch.userData._spore_chunk_base64 === "string") {
+      chunkNodes.push({
+        idx: Number(ch.userData._spore_chunk_index) || 0,
+        b64: ch.userData._spore_chunk_base64,
+      });
+    }
+  });
+
+  if (chunkNodes.length === 0) {
+    console.warn("decodeSporeToSnapshot: no hay chunks ni snapshot en este objeto.");
+    return null;
+  }
+
+  chunkNodes.sort((a, b) => a.idx - b.idx);
+  const bytes = [];
+  for (const c of chunkNodes) {
+    if (!c.b64) continue;
+    const bin = atob(c.b64);
+    for (let i = 0; i < bin.length; i++) bytes.push(bin.charCodeAt(i));
+  }
+
+  try {
+    const json = new TextDecoder().decode(new Uint8Array(bytes));
+    return JSON.parse(json);
+  } catch (e) {
+    console.error("Error al decodificar Spore desde chunks:", e);
+    return null;
+  }
+}
+
+// ---------------------- Export ligero de Spore ----------------------
+async function exportSporeAsGLB(sporeGroup = null, filename = "SporeMemory.glb") {
+  sporeGroup = sporeGroup || scene.getObjectByName(SPORE_GROUP_NAME);
+  if (!sporeGroup) return alert("No hay Spore para exportar.");
+
+  // --- Metadata esencial ---
+  sporeGroup.userData.isSpore = true;
+  sporeGroup.userData.exportedAt = new Date().toISOString();
+
+  // Snapshot de configuración de escena
+  const snapshot = decodeSporeToSnapshot(sporeGroup) || {};
+  sporeGroup.userData.snapshot = structuredClone(snapshot);
+
+  // Mantener URL original y token/hash si existen
+  sporeGroup.userData.modelUserData = sporeGroup.userData.modelUserData || {};
+  sporeGroup.userData.modelUserData.modelUrl = sporeGroup.userData.modelUrl || sporeGroup.userData.modelUserData.modelUrl;
+  sporeGroup.userData.modelUserData.originalName = sporeGroup.name || "SporeModel";
+
+  // --- Export GLB ---
+  exporter.parse(
+    sporeGroup,
+    (result) => {
+      const blob =
+        result instanceof ArrayBuffer
+          ? new Blob([result], { type: "model/gltf-binary" })
+          : new Blob([JSON.stringify(result)], { type: "application/json" });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      console.log("✅ Spore exportada (ligera) con metadatos esenciales:", sporeGroup.userData);
+    },
+    { binary: true }
+  );
+}
+
+
+
+// ---------------------- Manifest / Load ----------------------
+
+async function manifestSpore(snapshot) {
+  if (!snapshot) return console.warn("No hay snapshot para manifestar.");
+
+  if (!snapshot.modelUrl) {
+    console.warn("⚠️ No hay URL de modelo original, no puedo reconstruir la geometría.");
+    return;
+  }
+
+  // Cargar GLB original
+  const model = await new Promise((resolve, reject) => {
+    loader.load(snapshot.modelUrl, gltf => resolve(gltf.scene), undefined, reject);
+  });
+
+  // Aplicar userData
+  snapshot.meshes?.forEach(metaMesh => {
+    const target = model.getObjectByName(metaMesh.name);
+    if (target) target.userData = { ...target.userData, ...metaMesh.userData };
+  });
+
+  // Ajustar cámara
+  if (snapshot.camera) {
+    const pos = snapshot.camera.position;
+    const tgt = snapshot.camera.target;
+    camera.position.set(...pos);
+    controls.target.set(...tgt);
+    controls.update();
+  }
+
+  currentModel = model;
+  scene.add(model);
+  console.log("🌿 Spore manifestada:", model.name);
+}
+
+// ---------------------- Awaken Spore ----------------------
+async function awakenSpore(sporeObject) {
+  if (!sporeObject || !sporeObject.userData?.isSpore) {
+    console.warn("⚠️ No es una Spore válida.");
+    return null;
+  }
+
+  console.log("🌱 Awaken Spore: procesando", sporeObject.name || sporeObject.type);
+
+  // 1️⃣ Intentar obtener snapshot (DNI)
+  let snapshot = sporeObject.userData.snapshot || sporeObject.userData.sporeData?.snapshot;
+
+  // 2️⃣ Si no hay snapshot, intentar decodificar ADN
+  if (!snapshot && sporeObject.userData._spore_dna) {
+    console.log("🧬 Reconstruyendo snapshot desde ADN base64...");
+    try {
+      snapshot = decodeDNAtoSnapshot(sporeObject.userData._spore_dna);
+      if (snapshot) {
+        sporeObject.userData.snapshot = snapshot;
+        console.log("✅ Snapshot regenerado desde ADN.");
+      }
+    } catch (err) {
+      console.error("❌ Error al decodificar ADN:", err);
+    }
+  }
+
+  if (!snapshot) {
+    console.warn("⚠️ No hay snapshot ni ADN válidos. Se generará placeholder.");
+    return loadSporeSnapshot(sporeObject);
+  }
+
+  // 3️⃣ Buscar URL del modelo
+  let modelUrl =
+    snapshot.modelUserData?.modelUrl ||
+    snapshot.modelUrl ||
+    sporeObject.userData?.modelUrl ||
+    sporeObject.userData?.snapshot?.modelUserData?.modelUrl ||
+    sporeObject.userData?.snapshot?.modelUrl;
+
+  console.log("🧭 Model URL detectado:", modelUrl || "❌ Ninguno encontrado");
+
+  // 3️⃣a Si no hay URL, reconstruir desde ADN
+  if (!modelUrl) {
+    if (sporeObject.userData._spore_dna) {
+      try {
+        const glbData = decodeDNAtoGLB(sporeObject.userData._spore_dna); 
+        return new Promise((resolve, reject) => {
+          loader.parse(
+            glbData,
+            '',
+            (gltf) => {
+              const model = gltf.scene;
+              model.userData = { ...model.userData, isSpore: true, snapshot };
+              applySceneSettings(snapshot.sceneSettings, model);
+              applySporeUISettings(model, snapshot);
+              resolve(model);
+            },
+            (err) => reject(err)
+          );
+        });
+      } catch (err) {
+        console.error("❌ Error al reconstruir modelo desde ADN:", err);
+        return loadSporeSnapshot(sporeObject);
+      }
+    } else {
+      return loadSporeSnapshot(sporeObject);
+    }
+  }
+
+  // 4️⃣ Cargar modelo original y fusionar datos
+  return new Promise((resolve, reject) => {
+    loader.load(
+      modelUrl,
+      (gltf) => {
+        const model = gltf.scene;
+
+        // Fusionar metadatos de meshes
+        snapshot.meshes?.forEach(metaMesh => {
+          const target = model.getObjectByName(metaMesh.name);
+          if (target) target.userData = { ...target.userData, ...metaMesh.userData };
+        });
+
+        // Ajustar cámara si hay datos
+        if (snapshot.camera) {
+          const pos = snapshot.camera.position;
+          const tgt = snapshot.camera.target;
+          if (pos && tgt) {
+            camera.position.set(...pos);
+            controls.target.set(...tgt);
+            controls.update();
+          }
+        }
+
+        // Aplicar configuración de escena y efectos
+        if (snapshot.sceneSettings) applySceneSettings(snapshot.sceneSettings, model);
+
+        // Aplicar UI de animaciones, blobs/sellos y fondo
+        applySporeUISettings(model, snapshot);
+
+        // Etiquetar modelo y conservar snapshot
+        model.userData.isSpore = true;
+        model.userData.snapshot = structuredClone(snapshot);
+        model.userData._rehydrated = true;
+
+        console.log("🌿 Awaken Spore completada:", model.name);
+        resolve(model);
+      },
+      undefined,
+      (err) => {
+        console.error("❌ Error al cargar modelo original:", err);
+        reject(err);
+      }
+    );
+  });
+}
+
+// ---------------------- Helper: aplicar settings de escena ----------------------
+function applySceneSettings(sceneSettings, scene) {
+  if (!sceneSettings || !scene) return;
+
+  // Fondo
+  if (sceneSettings.backgroundColor !== undefined) scene.background = new THREE.Color(sceneSettings.backgroundColor);
+
+  // Luces
+  if (sceneSettings.lights && Array.isArray(sceneSettings.lights)) {
+    sceneSettings.lights.forEach(lightData => {
+      let light;
+      switch (lightData.type) {
+        case "AmbientLight":
+          light = new THREE.AmbientLight(lightData.color, lightData.intensity);
+          break;
+        case "DirectionalLight":
+          light = new THREE.DirectionalLight(lightData.color, lightData.intensity);
+          if (lightData.position) light.position.set(...lightData.position);
+          break;
+        case "PointLight":
+          light = new THREE.PointLight(lightData.color, lightData.intensity, lightData.distance, lightData.decay);
+          if (lightData.position) light.position.set(...lightData.position);
+          break;
+      }
+      if (light) scene.add(light);
+    });
+  }
+
+  // Entorno / HDR / cubemap
+  if (sceneSettings.environment) scene.environment = sceneSettings.environment;
+
+  // Otros efectos o botones
+  if (sceneSettings.effects) scene.userData.effects = sceneSettings.effects;
+  if (sceneSettings.buttons) scene.userData.buttons = sceneSettings.buttons;
+}
+
+// ---------------------- Helper: aplicar UI de la spore ----------------------
+function applySporeUISettings(model, snapshot) {
+  if (!snapshot || !model) return;
+
+  // Animación
+  const animCheck = document.getElementById('anim360Check');
+  const enableAnimCheckbox = document.getElementById('enableAnim');
+  const playBtn = document.getElementById('playAnim');
+  const animTypeSelect = document.getElementById('animType');
+
+  const animSettings = snapshot.sceneSettings?.animationSettings || {};
+  const is360Active = animSettings.is360Active ?? false;
+  const isAnimEnabled = animSettings.animEnabled ?? false;
+  const animDuration = animSettings.animDuration ?? 3;
+  const animSpeed = animSettings.animSpeed ?? 1;
+  const animType = animSettings.animType ?? '360';
+
+  if (animCheck) animCheck.checked = is360Active;
+  if (controls) controls.autoRotate = is360Active;
+
+  if (enableAnimCheckbox) {
+    enableAnimCheckbox.checked = isAnimEnabled;
+    enableAnimCheckbox.dispatchEvent(new Event('change'));
+  }
+  if (playBtn) playBtn.style.display = isAnimEnabled ? 'inline-block' : 'none';
+  if (animTypeSelect) {
+    if (![...animTypeSelect.options].some(opt => opt.value === animType) && animType !== "") {
+      const opt = document.createElement("option");
+      opt.value = animType;
+      opt.textContent = animType.charAt(0).toUpperCase() + animType.slice(1);
+      animTypeSelect.appendChild(opt);
+    }
+    animTypeSelect.value = animType;
+    animTypeSelect.dispatchEvent(new Event('change'));
+  }
+
+  const animDurationInput = document.getElementById('animDuration');
+  const animSpeedInput = document.getElementById('animSpeed');
+  if (animDurationInput) animDurationInput.value = animDuration;
+  if (animSpeedInput) animSpeedInput.value = animSpeed;
+
+  // BLOBS / sellos
+  model.traverse((child) => {
+    if (child.isMesh && child.userData?.catalogSeal) {
+      renderBlogPanel(child);
+    }
+  });
+
+  // Fondo
+  if (snapshot.sceneSettings?.backgroundColor !== undefined) {
+    const bgInput = document.getElementById('bgColorPicker');
+    const bgColor = snapshot.sceneSettings.backgroundColor;
+    model.parent && (model.parent.background = new THREE.Color(bgColor));
+    if (bgInput) bgInput.value = bgColor.startsWith("#") ? bgColor : "#" + bgColor;
+  }
+}
+
+
+
+// Reconstruye el snapshot en la escena como modelo normal
+function loadSporeSnapshot(sporeGroupOrSnapshot = null) {
+  const snapshot = sporeGroupOrSnapshot?.isSpore
+    ? decodeSporeToSnapshot(sporeGroupOrSnapshot)
+    : sporeGroupOrSnapshot || window.lastSporeSnapshot;
+
+  if (!snapshot) {
+    console.warn("No hay snapshot de Spore para cargar.");
+    return null;
+  }
+
+  // Crear grupo para el modelo reconstruido
+  const group = new THREE.Group();
+  group.name = snapshot.modelUserData?.originalName || "SporeModel";
+  group.userData = snapshot.modelUserData || {};
+
+  // Reconstruir meshes (placeholder)
+  snapshot.meshes?.forEach((m, i) => {
+    const geom = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    const mat = new THREE.MeshStandardMaterial({ color: 0xcccccc });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.name = m.name || `SporeMesh_${i}`;
+    mesh.userData = m.userData || {};
+    group.add(mesh);
+  });
+
+  if (snapshot.camera) group.userData._cameraSnapshot = snapshot.camera;
+  if (snapshot.sceneSettings) group.userData.sceneSettings = snapshot.sceneSettings;
+
+  return group;
+}
+
+// ---------------------- UI ----------------------
+function setupSporeUIBindings() {
+  const enc = document.getElementById("encodeSporeBtn");
+  const dec = document.getElementById("decodeSporeBtn");
+  const dl = document.getElementById("downloadSporeBtn");
+  const mf = document.getElementById("manifestSporeBtn");
+
+  if (enc)
+    enc.onclick = () => {
+      const g = encodeModelToSpore(currentModel, { chunkSize: 128 });
+      if (g)
+        alert(`Spore generada con ${g.userData._spore_chunk_count} chunks.`);
+    };
+
+  if (dec)
+    dec.onclick = () => {
+      const s = decodeSporeToSnapshot();
+      if (s) {
+        console.log("Snapshot reconstruido:", s);
+        window.lastSporeSnapshot = s;
+        alert("Snapshot guardado en memoria (ver consola).");
+      }
+    };
+
+  if (dl)
+    dl.onclick = () => {
+      exportSporeAsGLB(null, "SporeMemory.glb");
+    };
+
+  if (mf)
+    mf.onclick = () => {
+      if (window.lastSporeSnapshot) {
+        manifestSpore(window.lastSporeSnapshot);
+      } else alert("No hay Spore en memoria para manifestar.");
+    };
+}
+
+
+async function rehydrateSporeMetadata(sporeObject) {
+  if (!sporeObject || !sporeObject.userData?.isSpore) {
+    console.warn("⚠️ No es una Spore válida.");
+    return null;
+  }
+
+  const snapshot = sporeObject.userData.snapshot || sporeObject.userData.sporeData?.snapshot;
+  if (!snapshot || !snapshot.modelUserData?.modelUrl) {
+    console.warn("⚠️ Spore sin snapshot o sin URL de modelo original.");
+    return null;
+  }
+
+  const modelUrl = snapshot.modelUserData.modelUrl;
+  console.log("🌱 Rehidratando Spore desde modelo original:", modelUrl);
+
+  // --- Cargar el modelo original asociado ---
+  return new Promise((resolve, reject) => {
+    loader.load(
+      modelUrl,
+      (gltf) => {
+        const model = gltf.scene;
+
+        // Fusionar metadatos por nombre
+        if (snapshot.meshes && snapshot.meshes.length > 0) {
+          snapshot.meshes.forEach(metaMesh => {
+            const target = model.getObjectByName(metaMesh.name);
+            if (target) {
+              target.userData = { ...target.userData, ...metaMesh.userData };
+            }
+          });
+        }
+
+        // Ajustar cámara si hay datos
+        if (snapshot.camera) {
+          const pos = snapshot.camera.position;
+          const tgt = snapshot.camera.target;
+          if (pos && tgt) {
+            camera.position.set(pos[0], pos[1], pos[2]);
+            controls.target.set(tgt[0], tgt[1], tgt[2]);
+            controls.update();
+          }
+        }
+
+        console.log("✅ Spore rehidratada correctamente.");
+        resolve(model);
+      },
+      undefined,
+      (err) => {
+        console.error("Error al cargar modelo original:", err);
+        reject(err);
+      }
+    );
+  });
+}
+
+
+
+
+// 🔹 Integración segura del botón Shop dentro del HUD
+function integrateShoppingButton() {
+  const hud = document.getElementById('hudButtons');
+  if (!hud) return;
+
+  let btn = document.getElementById('addToCartBtn');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'addToCartBtn';
+    btn.className = 'floating-btn shopping-btn';
+    btn.textContent = 'Shop 🛒';
+    btn.style.padding = '10px 16px';
+    btn.style.fontSize = '14px';
+    btn.style.borderRadius = '19px';
+    btn.style.cursor = 'pointer';
+  }
+
+  // Conectar a la función real si existe
+  if (typeof openShoppingModal === "function") {
+    btn.onclick = () => openShoppingModal(currentModel, currentFileName);
+  }
+
+  // Solo añadir si no estaba
+  if (!hud.contains(btn)) hud.appendChild(btn);
+}
+
+
+// 🔹 Vigilar el HUD y reinyectar el botón Shop si se elimina accidentalmente
+function ensureShoppingButtonPersistence() {
+  const hudContainer = document.getElementById('hudButtons');
+  if (!hudContainer) return;
+
+  const observer = new MutationObserver(() => {
+    const shopBtn = document.getElementById('addToCartBtn');
+    // Si no existe, volver a integrarlo
+    if (!shopBtn) {
+      console.warn("🛒 Reinserción del botón Shop detectada.");
+      integrateShoppingButton();
+    }
+  });
+
+  // Observar cambios directos en el HUD (no necesitamos subtree)
+  observer.observe(hudContainer, { childList: true });
+}
+
+// Ejecutar al iniciar el entorno
+ensureShoppingButtonPersistence();
+
+// --- Función que obtiene el nombre del archivo sin extensión ---
+function getFinalModelName(model, fileName) {
+  if (fileName && fileName !== "") {
+    return fileName.replace(/\.(glb|gltf)$/i, ""); // quitar extensión
+  }
+  return model.userData.originalName || model.name || "Modelo desconocido";
+}
+function getModelConfigDetailsStructured(model) {
+  if (!model) return "<p>Sin información de configuración</p>";
+
+  const details = [];
+
+  model.traverse((child) => {
+    if (child.isMesh && child.material) {
+      const objName = child.name || child.uuid;
+
+      // Forzar actualización del material
+      const mats = Array.isArray(child.material) ? child.material : [child.material];
+      mats.forEach(mat => mat.needsUpdate = true);
+
+      // Obtener color configurado o usar color del material
+      let colorHex = child.userData?.config?.color;
+      if (!colorHex && child.material?.color) {
+        colorHex = "#" + child.material.color.getHexString();
+      }
+      if (!colorHex) colorHex = "#ccc";
+
+      // Representación visual más estética
+      details.push(`
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="width:26px;height:26px;border-radius:20%;background:${colorHex};border:0.5px solid #000;"></span>
+          <span style="font-weight:600;">${objName}:</span>
+          <span>${colorHex}</span>
+        </div>
+      `);
+    }
+  });
+
+  return details.length > 0 ? details.join("") : "<p>Sin información de configuración</p>";
+}
+function openShoppingModal(model, fileName) {
+  if (!model) return;
+
+  const modal = document.getElementById('shoppingModal');
+  const title = document.getElementById('shoppingModalTitle');
+  const renderContainer = document.getElementById('shoppingModalRender');
+  const infoContainer = document.getElementById('shoppingModalInfo');
+
+  modal.style.display = 'flex';
+
+  const finalName = getFinalModelName(model, fileName);
+  title.textContent = finalName;
+
+  renderContainer.innerHTML = '';
+
+  const width = renderContainer.clientWidth;
+  const height = renderContainer.clientHeight;
+
+  const snapshotRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping, outputEncoding: THREE.sRGBEncoding });
+  snapshotRenderer.setSize(width, height);
+  snapshotRenderer.setPixelRatio(window.devicePixelRatio);
+  renderContainer.appendChild(snapshotRenderer.domElement);
+
+  const snapshotScene = new THREE.Scene();
+  snapshotScene.background = new THREE.Color(0xffffff);
+
+  const snapshotModel = model.clone();
+  snapshotScene.add(snapshotModel);
+
+  // 🔹 Recrear luces de la escena principal
+  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+ ambient.position.set(10, 15, 10); 
+  snapshotScene.add(ambient);
+
+const dayLight = new THREE.DirectionalLight(0xffffff, 0.6);
+dayLight.position.set(0, 5, 10); 
+dayLight.castShadow = true;
+dayLight.shadow.mapSize.width = 2048;
+dayLight.shadow.mapSize.height = 2048;
+dayLight.shadow.radius = 15;
+dayLight.shadow.bias = -0.001;
+
+  snapshotScene.add(dayLight);
+
+  const keyLight = new THREE.DirectionalLight(0xffffff, 0.7);
+  keyLight.position.set(15, 18, 25);
+  keyLight.castShadow = true;
+  keyLight.shadow.radius = 20;
+  snapshotScene.add(keyLight);
+
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.25);
+  fillLight.position.set(-6, 4, -4);
+  snapshotScene.add(fillLight);
+
+  const rimLight = new THREE.DirectionalLight(0xffffff, 0.3);
+  rimLight.position.set(0, 3, -8);
+  snapshotScene.add(rimLight);
+
+  const topLight = new THREE.SpotLight(0xffffff, 0.4, 0, Math.PI/3, 0.7, 2);
+  topLight.position.set(0, 10, 0);
+  topLight.castShadow = true;
+  topLight.shadow.radius = 15;
+  snapshotScene.add(topLight);
+
+  // 🔹 Cámara
+  const snapshotCamera = new THREE.PerspectiveCamera(65, width / height, 0.1, 1000);
+  const box = new THREE.Box3().setFromObject(snapshotModel);
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const distance = maxDim / (2 * Math.tan(snapshotCamera.fov * Math.PI / 180 / 2)) * 1.5;
+  snapshotCamera.position.set(center.x + distance, center.y + distance * 1, center.z + distance);
+  snapshotCamera.lookAt(center);
+
+  snapshotRenderer.render(snapshotScene, snapshotCamera);
+
+  infoContainer.innerHTML = `
+    <p><strong>Detalles del producto:</strong></p>
+    ${getModelConfigDetailsStructured(model)}
+  `;
+}
+
+
+// --- Cerrar modal ---
+document.getElementById('closeShoppingModal').onclick = () => {
+  document.getElementById('shoppingModal').style.display = 'none';
+};
+
+// 🔹 Al cargar un modelo
+let currentFileName = ""; // <-- guardar nombre del archivo cargado
+
+function addProductToPage(model, fileName) {
+  if (!model) return;
+
+  const container = document.getElementById('productsContainer');
+  if (!container) return;
+
+  const productName = getFinalModelName(model, fileName);
+
+  const productCard = document.createElement('div');
+  productCard.className = 'product-card';
+
+  // Miniatura
+  const width = 200;
+  const height = 200;
+  const thumbRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  thumbRenderer.setSize(width, height);
+  const thumbContainer = document.createElement('div');
+  thumbContainer.appendChild(thumbRenderer.domElement);
+  productCard.appendChild(thumbContainer);
+
+  const thumbScene = new THREE.Scene();
+  const thumbModel = model.clone();
+  thumbScene.add(thumbModel);
+
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+  thumbScene.add(ambientLight);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  directionalLight.position.set(5, 10, 7.5);
+  thumbScene.add(directionalLight);
+
+  const thumbCamera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+  const box = new THREE.Box3().setFromObject(thumbModel);
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const distance = maxDim / (2 * Math.tan(thumbCamera.fov * Math.PI / 180 / 2)) * 1.5;
+  thumbCamera.position.set(center.x + distance, center.y + distance, center.z + distance);
+  thumbCamera.lookAt(center);
+
+  thumbRenderer.render(thumbScene, thumbCamera);
+
+  // Datos del producto reales
+  const infoDiv = document.createElement('div');
+  infoDiv.className = 'product-info';
+  infoDiv.innerHTML = `
+    <p><strong>${productName}</strong></p>
+    <p>${getModelConfigDetails(model)}</p>
+  `;
+  productCard.appendChild(infoDiv);
+
+  const btn = document.createElement('button');
+  btn.textContent = 'Ver / Comprar';
+  btn.onclick = () => openShoppingModal(model, fileName);
+  productCard.appendChild(btn);
+
+  container.appendChild(productCard);
+}
+
+// --- Controlar visibilidad del botón Shop ---
+document.addEventListener("DOMContentLoaded", () => {
+  const toggleShop = document.getElementById('toggleShopBtn');
+
+  if (toggleShop) {
+    toggleShop.addEventListener('change', (e) => {
+      const shopBtn = document.getElementById('addToCartBtn');
+      if (shopBtn) {
+        shopBtn.style.display = e.target.checked ? 'block' : 'none';
+      }
+    });
+  }
+});
+// Buscar token más reciente dentro de cualquier parte del modelo
+function findLatestToken(model) {
+  let latestToken = null;
+  let latestDate = 0;
+
+  function recurse(obj) {
+    if (!obj) return;
+
+    const userData = obj.userData || {};
+
+    // Buscar tokens posibles
+    const possibleTokens = [];
+
+    if (userData.token) {
+      possibleTokens.push({ token: userData.token, date: userData.date || null });
+    }
+
+    if (userData.catalogSeal?.token) {
+      possibleTokens.push({
+        token: userData.catalogSeal.token,
+        date: parseDate(userData.catalogSeal.date)
+      });
+    }
+
+    if (userData.blogs && userData.blogs.length > 0) {
+      userData.blogs.forEach(blog => {
+        if (blog.token) {
+          possibleTokens.push({
+            token: blog.token,
+            date: parseDate(blog.date)
+          });
+        }
+      });
+    }
+
+    // Actualizar si encontramos uno más reciente
+    for (const { token, date } of possibleTokens) {
+      const time = date ? new Date(date).getTime() : Date.now();
+      if (time > latestDate) {
+        latestDate = time;
+        latestToken = token;
+      }
+    }
+
+    // Seguir buscando en hijos
+    if (obj.children && obj.children.length > 0) {
+      obj.children.forEach(recurse);
+    }
+  }
+
+  // pequeña ayuda para fechas estilo "1/11/2025, 13:01:01"
+  function parseDate(str) {
+    if (!str) return null;
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  recurse(model);
+  return latestToken;
+}
+
+
+
+// --- Modificación de generateProductUrl para incluir la URL del modelo ---
+function generateProductUrl(model, fileName) {
+  const finalName = getFinalModelName(model, fileName);
+
+  const qtyInput = document.getElementById('productQuantity');
+  const qty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
+
+  const baseUrl = window.customBaseUrl || 'https://3dtwins.es/producto-personalizado';
+
+  let token = null;
+  model.traverse((child) => {
+    if (child.userData?.token && !token) token = child.userData.token;
+  });
+  token = token || "no-token-found";
+
+  // Extraer configuración
+  const configItems = [];
+  model.traverse((child) => {
+    if (child.isMesh) {
+      const objName = child.name || "unnamed";
+      let colorHex = child.userData?.config?.color;
+      if (!colorHex && child.material?.color) {
+        colorHex = "#" + child.material.color.getHexString();
+      }
+      if (colorHex) configItems.push(`${objName}:${colorHex}`);
+    }
+  });
+
+  const configParam = encodeURIComponent(configItems.join('|'));
+  const modelUrlParam = encodeURIComponent(model.userData?.modelUrl || ''); // URL del modelo original
+
+  return `${baseUrl}?name=${encodeURIComponent(finalName)}&config=${configParam}&quantity=${qty}&token=${token}&modelUrl=${modelUrlParam}`;
+}
+
+// --- Botón de compra existente, sin tocar ID ---
+const buyBtn = document.getElementById('buyNowBtn');
+buyBtn.addEventListener('click', () => {
+  const url = generateProductUrl(currentModel, currentFileName);
+  window.open(url, '_blank'); // abre la URL en otra pestaña
+});
+
+
+// --- Lógica de carga desde botón del editor ---
+  document.getElementById('loadModelFromUrlBtn').addEventListener('click', () => {
+    const urlInput = document.getElementById('modelUrlInput').value;
+    if (!urlInput) return alert('Introduce una URL válida');
+
+    const urlParams = new URLSearchParams(urlInput.split('?')[1]);
+    const modelUrl = urlParams.get('modelUrl') || urlInput;
+    const configStr = urlParams.get('config');
+
+    if (!modelUrl) return alert('La URL no contiene un modelo válido');
+
+    loadGLB(modelUrl, 'Modelo desde URL', () => {
+      if (!configStr) return;
+
+      try {
+        const configItems = decodeURIComponent(configStr).split('|');
+        const colorMap = {};
+        configItems.forEach(item => {
+          const [meshName, colorHex] = item.split(':');
+          if (meshName && colorHex) colorMap[meshName.trim()] = colorHex.trim();
+        });
+
+        if (!currentModel) return console.warn('⚠️ No hay modelo cargado aún.');
+
+        currentModel.traverse(child => {
+          if (child.isMesh && colorMap[child.name]) {
+            const newColor = colorMap[child.name];
+            const mats = Array.isArray(child.material) ? child.material : [child.material];
+            mats.forEach(mat => {
+              if (mat.color) {
+                mat.color.set(newColor);
+                mat.needsUpdate = true;
+              }
+            });
+          }
+        });
+
+        console.log('🎨 Configuración aplicada desde URL:', colorMap);
+
+      } catch (err) {
+        console.error('❌ Error al aplicar configuración desde URL:', err);
+      }
+    });
+  });
+
+
+// --- Tu exportHTMLWithURLs y helper siguen igual ---
+async function exportHTMLWithURLs() {
+  const panel = document.getElementById('panel');
+  const prevDisplayPanel = panel ? panel.style.display : null;
+  if (panel) panel.style.display = 'none';
+
+  const libraryContainer = document.getElementById('libraryContainer');
+  const prevDisplayLibrary = libraryContainer ? libraryContainer.style.display : null;
+  if (libraryContainer) libraryContainer.style.display = 'none';
+
+  let fullHTML = document.documentElement.outerHTML;
+
+  if (panel) panel.style.display = prevDisplayPanel;
+  if (libraryContainer) libraryContainer.style.display = prevDisplayLibrary;
+
+  const nodes = Array.from(document.querySelectorAll('#libraryContainer > div'));
+  const libs = [];
+
+  nodes.forEach(node => {
+    const name = node.dataset.modelName || node.title || 'Model';
+    let src = '';
+    let base64 = '';
+    let thumbnail = '';
+
+    if (node.dataset.src) {
+      src = node.dataset.src;
+    } else if (node.dataset.modelUrl) {
+      src = node.dataset.modelUrl;
+    } else if (node.dataset.modelBase64) {
+      base64 = node.dataset.modelBase64;
+    }
+
+    const img = node.querySelector('img');
+    if (img && img.src) thumbnail = img.src;
+
+    if (src || base64) {
+      libs.push({
+        name: escapeForJS(name),
+        src: src ? escapeForJS(src) : '',
+        base64: base64 ? escapeForJS(base64) : '',
+        thumbnail: thumbnail ? escapeForJS(thumbnail) : ''
+      });
+    }
+  });
+
+  const libraryRegex = /const libraryModels = \[[\s\S]*?\];/m;
+  if (libs.length > 0 && libraryRegex.test(fullHTML)) {
+    const libsString = 'const libraryModels = [\n' +
+      libs.map(l => `  { 
+        name: "${l.name}", 
+        src: "${l.src}", 
+        base64: "${l.base64}", 
+        thumbnail: "${l.thumbnail}" 
+      }`).join(',\n') +
+      '\n];';
+    fullHTML = fullHTML.replace(libraryRegex, libsString);
+  }
+
+  const blob = new Blob([fullHTML], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '3dtwinsVisorWithURLs.html';
+  a.click();
+}
+
+function escapeForJS(str) {
+  return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+}
+
+document.getElementById('downloadHTMLWithURLsBtn').addEventListener('click', exportHTMLWithURLs);
+
+function resizeRenderer(){
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  if(canvas.width!==width || canvas.height!==height){
+    renderer.setSize(width,height,false);
+    camera.aspect=width/height;
+    camera.updateProjectionMatrix();
+  }
+}
+
+function render(){
+  resizeRenderer();
+  renderer.render(scene,camera);
+  requestAnimationFrame(render);
+}
+render();
+
+</script>
+
+</body></html>
