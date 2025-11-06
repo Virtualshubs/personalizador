@@ -3,11 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>3DTWINS visor</title>
+<title>3DTWINS_VISOR</title>
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <link rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-
+ <link
+      rel="icon"
+      href="https://virtualshubs.github.io/personalizador/3dtwinslogo2025:2026.png"
+      type="image/x-icon"
+    />
 <style>
   body { margin:0; font-family: Inter, system-ui, Arial; display:flex; height:100vh; }
 
@@ -51,9 +55,9 @@ button .material-icons {
 
 
   
-  #app { display:flex; flex:1; gap:12px; padding:12px; box-sizing:border-box; margin-top: 0px; }
-  #canvasWrap { flex:1; border-radius:12px; overflow:hidden; box-shadow:0 12px 24px rgba(13, 0, 255, 0.15); position:relative; }
-  canvas { display:block; width:100%; height:100%; }
+  #app { display:flex; flex:1; gap:0px; padding:0px; box-sizing:border-box; margin-top: 0px; }
+  #canvasWrap { flex:1; border-radius:12px; overflow:hidden;  position:relative; }
+  canvas { display:block; width:100%; height:100vh; }
   #panel { width:340px; max-width:340px; background:#f4f4f4; border-radius:12px; padding:16px; box-shadow:0 6px 24px rgba(0,0,0,0.08); overflow:auto; }
   h3 { margin: 29px 0px; font-size:18px; }
   label { display:block; margin-top:8px; font-size:13px; color:#000000; }
@@ -102,13 +106,11 @@ button .material-icons {
 </head>
 <body>
 
-  <!-- Pantalla inicial con botón -->
   <div id="startScreen">
-    <h2>Haz clic para cargar el modelo</h2>
-    <button id="loadButton">Cargar modelo</button>
+    <h2>Ver</h2>
+    <button id="loadButton">ver</button>
   </div>
 
-  <!-- Contenedor de la app -->
   <div id="appContainer">
 
 <div id="app">
@@ -116,9 +118,6 @@ button .material-icons {
     <div class="topbar">
       <div class="chip" id="modelName" hidden>No model</div>
 
-
-
-<!-- Modal de compra dinámico estilo “Shopify-like” -->
 <div id="shoppingModal" style="display:none;position:fixed;margin:0px;top:28px;left:0;width:100%;height:100vh;background:rgba(0,0,0,0.85);justify-content:center;align-items:center;z-index: index 9999;">
   <div style="position:relative;width:100%;max-width:1000px;height:95%;background:#fff;border-radius:0px;overflow:hidden;display:flex;flex-direction:row;box-shadow:0 10px 25px rgba(0,0,0,0.4);">
 
@@ -140,7 +139,7 @@ button .material-icons {
 
       <!-- Botones de acción -->
       <div style="display:flex;gap:12px;flex-wrap:wrap;">
-        <button id="addToCartBtn" style="flex:1;padding:12px 20px;font-family: Inter, system-ui, Arial;background:#94f17f;color:#000000;border:none;border-radius:18px;cursor:pointer;font-size:15px;">Comprar 🛒</button>
+        <button id="addToCartBtn" style="flex:1;padding:12px 20px;font-family: Inter, system-ui, Arial;background:#94f17f;color:#000000;border:none;border-radius:18px;cursor:pointer;font-size:15px; display: none;" >Comprar 🛒</button>
         <button id="buyNowBtn" style="flex:1;padding:12px 20px;background:#94f17f;color:#333;border:none;border-radius:18px;cursor:pointer;font-size:15px;">Comprar ahora</button>
       
       </div>
@@ -220,7 +219,7 @@ font-family: Inter, system-ui, Arial;
   
 <div class="hud-option">
   <label>
-    <input type="checkbox" id="toggleShopBtn" checked />
+    <input type="checkbox" id="toggleShopBtn"  />
     Mostrar botón Shop 🛒
   </label>
 </div>
@@ -241,33 +240,6 @@ font-family: Inter, system-ui, Arial;
  
 
 
-<div id="purchasePanel" style="margin-top:12px; padding:8px; border-top:1px solid #eee;" hidden>
-  <h4 style="margin:0 0 8px 0">Comprar / Purchase</h4>
-
-  <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-    <input id="togglePurchaseBtnCheck" type="checkbox" />
-    <span>Activar botón de compra</span>
-  </label>
-
-  <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-    <select id="purchasePlatformSelect" style="flex:1;padding:6px;">
-      <option value="shopify">Shopify</option>
-      <option value="woocommerce">WooCommerce</option>
-      <option value="magento">Magento</option>
-      <option value="custom">Custom / Other</option>
-    </select>
-    <input id="purchaseBaseUrlInput" type="text" placeholder="https://vendedor.example/ (base URL)" style="flex:2;padding:6px;" />
-  </div>
-
-  <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-    <button id="savePurchaseBtn" style="padding:6px 10px;">Generar botón</button>
-    <button id="previewPurchaseBtn" style="padding:6px 10px;">Previsualizar URL</button>
-    <span id="purchaseUrlPreview" style="font-size:12px;color:#666;word-break:break-all;"></span>
-  </div>
-
-  <div style="font-size:12px;color:#666;">
-  </div>
-</div>
 
 <h3>
   <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px;">
@@ -353,49 +325,33 @@ output_circle
 
 <script>
 
-
-
-// --- Obtener modelo desde la URL del navegador ---
-  const urlParams = new URLSearchParams(window.location.search);
-
-  // ✅ Buscar el último modelUrl que apunte a un .glb
-  let modelUrlParam = null;
-  for (const [key, value] of urlParams.entries()) {
-    if (key === "modelUrl" && value.endsWith(".glb")) {
-      modelUrlParam = value;
-    }
-  }
-
-  const configParam = urlParams.get("config");
-
-  // 🔹 Modelo por defecto (para tests locales)
-  const DEFAULT_MODEL = "https://3dtwins.es/producto-personalizado?name=Termo%20caf%C3%A9&config=Object_3%3A%23ff8300%7CObject_4%3A%23ff8300%7CObject_5%3A%231e1c28&quantity=1&token=no-token-found&modelUrl=https%3A%2F%2Fvirtualshubs.github.io%2Fpersonalizador%2Fring.glb";
-  const MODEL_URL = modelUrlParam || DEFAULT_MODEL;
-
-  // --- Pantalla de inicio ---
+window.addEventListener("DOMContentLoaded", () => {
+  const input = document.getElementById("modelUrlInput");
+  const btn = document.getElementById("loadModelFromUrlBtn");
   const startScreen = document.getElementById("startScreen");
   const appContainer = document.getElementById("appContainer");
-  const loadButton = document.getElementById("loadButton");
 
-  loadButton.addEventListener("click", () => {
-    startScreen.style.display = "none";
-    appContainer.style.display = "block";
+  if (!input || !btn || !startScreen || !appContainer) return;
 
-    setTimeout(() => {
-      const input = document.getElementById("modelUrlInput");
-      const btn = document.getElementById("loadModelFromUrlBtn");
+  const fullUrl = window.location.href;
+  input.value = fullUrl;
 
-      if (!input || !btn) {
-        console.error("⚠️ No se encontró el input o el botón del editor");
-        return;
-      }
+  startScreen.style.display = "none";
+  appContainer.style.display = "block";
 
-      // Insertamos la URL del modelo detectado
-      input.value = MODEL_URL;
-      btn.click();
+  // 🔹 Detectar si contiene datos de escena
+  const params = new URLSearchParams(fullUrl.split("?")[1]);
+  const isScene = params.has("scene") || params.has("hud") || params.has("bgColor");
 
-    }, 1000);
-  });
+  setTimeout(() => {
+    if (isScene) {
+      modelUrlInput(fullUrl);
+    } else {
+      btn.click(); // usa la lógica normal de producto
+    }
+  }, 500);
+});
+
 
 
 
@@ -491,11 +447,11 @@ const libraryModels = [
 
 const libraryContainer = document.createElement('div');
 libraryContainer.id = 'libraryContainer';  
-libraryContainer.style.width = "80px";
-libraryContainer.style.height = "80%";
+libraryContainer.style.width = "0px";
+libraryContainer.style.height = "0%";
 libraryContainer.style.background = "#fff";
 libraryContainer.style.borderRadius = "12px";
-libraryContainer.style.padding = "6px";
+libraryContainer.style.padding = "0px";
 libraryContainer.style.display = "flex";
 libraryContainer.style.flexDirection = "column";
 libraryContainer.style.gap = "8px";
@@ -693,6 +649,8 @@ function loadGLB(url, name = "", onLoaded) {
           }
         }
       });
+
+        const skipMaterialReset = window.SKIP_MATERIAL_RESET || false;
 
       // --- Procesar meshes: blogs y sello ---
       await currentModel.traverse(async (child) => {
@@ -3058,6 +3016,9 @@ function getFinalModelName(model, fileName) {
   }
   return model.userData.originalName || model.name || "Modelo desconocido";
 }
+
+
+
 function getModelConfigDetailsStructured(model) {
   if (!model) return "<p>Sin información de configuración</p>";
 
@@ -3174,13 +3135,11 @@ dayLight.shadow.bias = -0.001;
 }
 
 
-// --- Cerrar modal ---
 document.getElementById('closeShoppingModal').onclick = () => {
   document.getElementById('shoppingModal').style.display = 'none';
 };
 
-// 🔹 Al cargar un modelo
-let currentFileName = ""; // <-- guardar nombre del archivo cargado
+let currentFileName = ""; 
 
 function addProductToPage(model, fileName) {
   if (!model) return;
@@ -3240,7 +3199,6 @@ function addProductToPage(model, fileName) {
   container.appendChild(productCard);
 }
 
-// --- Controlar visibilidad del botón Shop ---
 document.addEventListener("DOMContentLoaded", () => {
   const toggleShop = document.getElementById('toggleShopBtn');
 
@@ -3253,7 +3211,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
-// Buscar token más reciente dentro de cualquier parte del modelo
+
+
 function findLatestToken(model) {
   let latestToken = null;
   let latestDate = 0;
@@ -3315,8 +3274,6 @@ function findLatestToken(model) {
 }
 
 
-
-// --- Modificación de generateProductUrl para incluir la URL del modelo ---
 function generateProductUrl(model, fileName) {
   const finalName = getFinalModelName(model, fileName);
 
@@ -3357,52 +3314,117 @@ buyBtn.addEventListener('click', () => {
   window.open(url, '_blank'); // abre la URL en otra pestaña
 });
 
+// --- Función para aplicar la configuración de colores desde URL ---
+function applyConfigToModel(model, configStr) {
+  if (!model || !configStr) return;
 
-// --- Lógica de carga desde botón del editor ---
-  document.getElementById('loadModelFromUrlBtn').addEventListener('click', () => {
-    const urlInput = document.getElementById('modelUrlInput').value;
-    if (!urlInput) return alert('Introduce una URL válida');
+  try {
+    const decodedConfig = decodeURIComponent(configStr);
+    const configItems = decodedConfig.split('|');
+    const colorMap = {};
 
-    const urlParams = new URLSearchParams(urlInput.split('?')[1]);
-    const modelUrl = urlParams.get('modelUrl') || urlInput;
-    const configStr = urlParams.get('config');
+    // Crear un mapa de meshName -> colorHex
+    configItems.forEach(item => {
+      const [meshName, colorHex] = item.split(':');
+      if (meshName && colorHex) colorMap[meshName.trim()] = colorHex.trim();
+    });
 
-    if (!modelUrl) return alert('La URL no contiene un modelo válido');
-
-    loadGLB(modelUrl, 'Modelo desde URL', () => {
-      if (!configStr) return;
-
-      try {
-        const configItems = decodeURIComponent(configStr).split('|');
-        const colorMap = {};
-        configItems.forEach(item => {
-          const [meshName, colorHex] = item.split(':');
-          if (meshName && colorHex) colorMap[meshName.trim()] = colorHex.trim();
-        });
-
-        if (!currentModel) return console.warn('⚠️ No hay modelo cargado aún.');
-
-        currentModel.traverse(child => {
-          if (child.isMesh && colorMap[child.name]) {
-            const newColor = colorMap[child.name];
-            const mats = Array.isArray(child.material) ? child.material : [child.material];
-            mats.forEach(mat => {
-              if (mat.color) {
-                mat.color.set(newColor);
-                mat.needsUpdate = true;
-              }
-            });
+    // 🔹 Aplicar colores
+    model.traverse(child => {
+      if (child.isMesh && colorMap[child.name]) {
+        const newColor = colorMap[child.name];
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach((mat, i) => {
+          // 🧩 Clonar material si no está clonado aún
+          if (!mat.isCloned) {
+            const clonedMat = mat.clone();
+            clonedMat.isCloned = true;
+            if (Array.isArray(child.material)) {
+              child.material[i] = clonedMat;
+            } else {
+              child.material = clonedMat;
+            }
           }
+
+          const activeMat = Array.isArray(child.material) ? child.material[i] : child.material;
+
+          // 🧹 Quitar textura para que el color se vea
+          if (activeMat.map) {
+            activeMat.map = null;
+          }
+
+          // 🎨 Aplicar color
+          if (activeMat.color) {
+            activeMat.color.set(newColor);
+          }
+
+          activeMat.needsUpdate = true;
         });
 
-        console.log('🎨 Configuración aplicada desde URL:', colorMap);
-
-      } catch (err) {
-        console.error('❌ Error al aplicar configuración desde URL:', err);
+        console.log(`🎨 ${child.name} → ${newColor}`);
       }
     });
-  });
 
+    console.log('✅ Configuración aplicada desde URL:', colorMap);
+  } catch (err) {
+    console.error('❌ Error al aplicar configuración desde URL:', err);
+  }
+}
+
+
+// --- Función para cargar modelo desde input URL (con restauración de colores) ---
+document.getElementById('loadModelFromUrlBtn').addEventListener('click', () => {
+  const urlInput = document.getElementById('modelUrlInput').value;
+  if (!urlInput) return alert('Introduce una URL válida');
+
+  const urlParams = new URLSearchParams(urlInput.split('?')[1]);
+  const modelUrl = urlParams.get('modelUrl');
+  const configStr = urlParams.get('config');
+
+  if (!modelUrl) return alert('La URL no contiene un modelo válido');
+
+  // --- Cargar modelo usando tu loadGLB y aplicar colores al terminar ---
+  loadGLB(modelUrl, 'Modelo desde URL', () => {
+
+    if (!configStr) return;
+
+    try {
+      const configItems = decodeURIComponent(configStr).split('|');
+      const colorMap = {};
+
+      configItems.forEach(item => {
+        const [meshName, colorHex] = item.split(':');
+        if (meshName && colorHex) colorMap[meshName.trim()] = colorHex.trim();
+      });
+
+      if (!currentModel) {
+        console.warn('⚠️ No hay modelo cargado aún para aplicar colores.');
+        return;
+      }
+
+      // 🔹 Aplicar colores a los objetos correspondientes
+      currentModel.traverse(child => {
+        if (child.isMesh && colorMap[child.name]) {
+          const newColor = colorMap[child.name];
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          mats.forEach(mat => {
+            if (mat.color) {
+              mat.color.set(newColor);
+              mat.needsUpdate = true;
+            }
+          });
+        }
+      });
+
+      console.log('🎨 Configuración de color aplicada desde URL:', colorMap);
+
+    } catch (err) {
+      console.error('❌ Error al aplicar configuración desde URL:', err);
+    }
+  });
+});
+
+  
 
 // --- Tu exportHTMLWithURLs y helper siguen igual ---
 async function exportHTMLWithURLs() {
@@ -3475,6 +3497,133 @@ function escapeForJS(str) {
 
 document.getElementById('downloadHTMLWithURLsBtn').addEventListener('click', exportHTMLWithURLs);
 
+
+
+// --- Función para cargar una escena completa desde URL ---
+async function loadSceneFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+
+    const modelUrl = urlParams.get('modelUrl');
+    const sceneFullStr = urlParams.get('sceneFull');
+
+    if (!modelUrl) return console.warn("No hay URL de modelo en la página.");
+
+    // Cargar el modelo base con LoadGLB
+    loadGLB(modelUrl, "Modelo desde URL", async () => {
+
+        if (!sceneFullStr) return; // No hay datos extra, solo modelo
+
+        try {
+            // 🔹 Decodificar todos los datos de la escena
+            const sceneFull = JSON.parse(decodeURIComponent(sceneFullStr));
+            const { sceneData, bgColor, hud, interoperable } = sceneFull;
+
+            // 🔹 Reescribir metadatos del modelo según la URL
+            if (sceneData && currentModel) {
+                currentModel.traverse(child => {
+                    const data = sceneData[child.name || child.uuid];
+                    if (data) child.userData = data;
+                });
+            }
+
+            // 🔹 Restaurar HUD
+            if (hud) applyHUDState(JSON.parse(hud));
+
+            // 🔹 Restaurar fondo
+            if (bgColor) {
+                const color = new THREE.Color(bgColor.startsWith('#') ? bgColor : '#' + bgColor);
+                scene.background = color;
+                renderer.setClearColor(color);
+                const bgInput = document.getElementById('bgColorPicker');
+                if (bgInput) bgInput.value = bgColor;
+            }
+
+            // 🔹 Restaurar animaciones
+            restoreAnimationsFromMetadata();
+
+            // 🔹 Restaurar botones, paneles y compra
+            updateHUD();
+            integrateShoppingButton();
+            ensureShoppingButtonPersistence();
+
+            // 🔹 Ajustar cámara y controles
+            const box = new THREE.Box3().setFromObject(currentModel);
+            const center = new THREE.Vector3();
+            box.getCenter(center);
+            const size = new THREE.Vector3();
+            box.getSize(size);
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const fov = camera.fov * (Math.PI / 180);
+            let distance = maxDim / (2 * Math.tan(fov / 2)) * 1.5;
+            camera.position.set(center.x + distance, center.y + distance, center.z + distance);
+            camera.lookAt(center);
+            controls.target.copy(center);
+            controls.update();
+            controls.minDistance = maxDim * 0.5;
+            controls.maxDistance = maxDim * 3;
+
+            // 🔹 UI
+            document.getElementById("modelName").textContent = currentFileName || modelUrl.split("/").pop();
+            document.getElementById("modelStatus").textContent = "Escena lista";
+
+            // 🔹 Lista de meshes y animación de entrada
+            buildMeshList();
+            animateEntry(currentModel);
+
+        } catch (err) {
+            console.error("❌ Error al decodificar y aplicar SceneFromURL:", err);
+        }
+    });
+}
+
+// --- Función para restaurar HUD ---
+function applyHUDState(hudState) {
+    if (!hudState) return;
+    for (const key in hudState) {
+        const el = document.getElementById(key);
+        if (el) el.style.display = hudState[key] ? 'block' : 'none';
+    }
+}
+
+// --- Función para restaurar animaciones desde metadatos ---
+function restoreAnimationsFromMetadata() {
+    if (!currentModel) return;
+    currentModel.traverse(child => {
+        const animSettings = child.userData?.sceneSettings?.animationSettings;
+        if (animSettings) {
+            // Restaurar cada parámetro de animación
+            const animCheck = document.getElementById('anim360Check');
+            const enableAnimCheckbox = document.getElementById('enableAnim');
+            const playBtn = document.getElementById('playAnim');
+            const animTypeSelect = document.getElementById('animType');
+
+            if (animCheck) animCheck.checked = child.userData.sceneSettings?.is360Active ?? false;
+            if (controls) controls.autoRotate = child.userData.sceneSettings?.is360Active ?? false;
+            if (enableAnimCheckbox) enableAnimCheckbox.checked = animSettings.animEnabled ?? false;
+            if (playBtn) playBtn.style.display = animSettings.animEnabled ? 'inline-block' : 'none';
+            if (animTypeSelect) {
+                const animType = animSettings.animType ?? '360';
+                if (![...animTypeSelect.options].some(opt => opt.value === animType)) {
+                    const opt = document.createElement("option");
+                    opt.value = animType;
+                    opt.textContent = animType.charAt(0).toUpperCase() + animType.slice(1);
+                    animTypeSelect.appendChild(opt);
+                }
+                animTypeSelect.value = animType;
+                animTypeSelect.dispatchEvent(new Event('change'));
+            }
+
+            const animDurationInput = document.getElementById('animDuration');
+            const animSpeedInput = document.getElementById('animSpeed');
+            if (animDurationInput) animDurationInput.value = animSettings.animDuration ?? 3;
+            if (animSpeedInput) animSpeedInput.value = animSettings.animSpeed ?? 1;
+        }
+    });
+}
+
+
+
+
 function resizeRenderer(){
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
@@ -3495,3 +3644,4 @@ render();
 </script>
 
 </body></html>
+
