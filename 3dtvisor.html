@@ -100,6 +100,20 @@ button .material-icons {
 }
 
 
+#toggleHudButton {
+  position: absolute; /* o fixed si quieres que siempre quede visible */
+  top: 10px;
+  right: 10px;
+  z-index: 10000;
+  padding: 10px 16px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(90deg,#00bcd4,#00ffcc);
+  color: #111;
+  font-weight: bold;
+  cursor: pointer;
+}
 
 
 </style>
@@ -182,6 +196,7 @@ font-family: Inter, system-ui, Arial;
   </div>
 </div>
 
+<button id="toggleHudButton">Personalizar</button>
 
     <div id="hudButtons"></div> 
     <div id="floatMenu">
@@ -3621,6 +3636,16 @@ function restoreAnimationsFromMetadata() {
     });
 }
 
+const toggleButton = document.getElementById('toggleHudButton');
+const hud = document.getElementById('hudButtons');
+
+toggleButton.addEventListener('click', () => {
+  if (hud.style.display === 'none' || hud.style.display === '') {
+    hud.style.display = 'flex'; // o 'block', según tu layout
+  } else {
+    hud.style.display = 'none';
+  }
+});
 
 
 
