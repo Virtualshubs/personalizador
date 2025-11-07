@@ -3,18 +3,32 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>3DTWINS EDITOR</title>
+<title>3DTWINS_VISOR</title>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
  <link
       rel="icon"
       href="https://virtualshubs.github.io/personalizador/3dtwinslogo2025:2026.png"
       type="image/x-icon"
     />
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-<link rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-
 <style>
   body { margin:0; font-family: Inter, system-ui, Arial; display:flex; height:100vh; }
+
+
+ #startScreen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+    #appContainer {
+      display: none;
+      width: 100%;
+      height: 100%;
+    }
+
 
 .config-btn {
   background: #2222221c;
@@ -39,32 +53,12 @@ button .material-icons {
   margin-right: 4px;
 }
 
-  header#mainHeader {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 70px;
-  background: #131313fa;
-  color: rgb(255, 255, 255);
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  font-family: Inter, system-ui, Arial;
-  z-index: 10000;
-  box-shadow: 0 8px 7px rgba(0, 136, 227, 0.2);
-}
 
-header#mainHeader img#logo {
-  height: 50px; 
-  width: auto;
-  border-radius: 6px; 
-}
   
-  #app {  display:flex; flex:1; gap:12px; padding:12px; box-sizing:border-box; margin-top: 60px; }
-  #canvasWrap { flex:1; border-radius:12px; overflow:hidden; box-shadow:0 12px 24px rgba(13, 0, 255, 0.15); position:relative; }
-  canvas { display:block; width:100%; height:100%; }
-  #panel { width:290px; max-width:340px; background:#f4f4f4; border-radius:12px; padding:16px; box-shadow:0 6px 24px rgba(0,0,0,0.08); overflow:auto; }
+  #app { display:flex; flex:1; gap:0px; padding:0px; box-sizing:border-box; margin-top: 0px; }
+  #canvasWrap { flex:1; border-radius:12px; overflow:hidden;  position:relative; }
+  canvas { display:block; width:100%; height:100vh; }
+  #panel { width:340px; max-width:340px; background:#f4f4f4; border-radius:12px; padding:16px; box-shadow:0 6px 24px rgba(0,0,0,0.08); overflow:auto; }
   h3 { margin: 29px 0px; font-size:18px; }
   label { display:block; margin-top:8px; font-size:13px; color:#000000; }
   input[type=text], input[type=color], textarea { width:100%; padding:8px; border-radius:8px; border:1px solid #ddd; margin-top:6px; box-sizing:border-box; }
@@ -75,8 +69,8 @@ header#mainHeader img#logo {
   #fileInput, #meshTexture { display:none; }
   .topbar { position:absolute; left:12px; top:12px; display:flex; gap:8px; z-index:999; }
   .chip { background:rgba(255,255,255,0.9); padding:8px 10px; border-radius:999px; box-shadow:0 2px 6px rgba(0,0,0,0.08); font-size:13px; }
-  #floatMenu { position:absolute; top:80px; left:20px; background:#ffffff; padding:12px; border-radius:18px; box-shadow:0 6px 24px rgba(0,0,0,0.15); display:none; z-index:998; }
-  #meshList { width:290px;max-width:340px; max-height:auto; overflow:auto; border:1px solid #eee; padding:8px; border-radius:8px; }
+  #floatMenu { position:absolute; bottom: 20px; left:20px; background:#ffffff; padding:12px; border-radius:18px; box-shadow:0 6px 24px rgba(0,0,0,0.15); display:none; z-index:998; }
+  #meshList { margin-top:12px; max-height:200px; overflow:auto; border:1px solid #eee; padding:8px; border-radius:8px; }
   #meshList label { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; cursor:pointer; }
   #meshList .children { margin-left:16px; }
   #hudButtons { position:absolute;top: 12px; right:12px; display:flex; flex-direction:column; gap:4px; z-index:100; }
@@ -104,91 +98,12 @@ header#mainHeader img#logo {
     flex-direction: column;
   }
 }
-#rightSideMenu {
-  position: fixed;
- top: 0px;                /* Lo colocamos en la parte baja */
-  left: 50%;                   /* Centrado horizontal */
-  transform: translateX(-50%) scale(0.7); /* Leve reducción como dock inactivo */
-  display: flex;
-  flex-direction: row;         /* En línea */
-  gap: 10px;
-  background: rgb(227, 167, 255);
-  padding: 10px 20px;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(6px);
-  z-index: 10000;
-  transition: all 0.3s ease;
-  opacity: 0.9;
-
-}
-
-/* Efecto al pasar el mouse por la barra */
-#rightSideMenu:hover {
-  transform: translateX(-50%) scale(1);
-  opacity: 1;
-    background: #c800ff;
-}
-
-/* Botones del dock */
-.menu-btn {
-  padding:10px 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 90px;
-  height: 50px;
-  font-size: 11px;
-  background: #c42cd2;
-  border: none;
-  border-radius: 12px;
-  color: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.menu-btn:hover {
-  background: #e490fb;
-  transform: scale(1.0.9);
-  color: black;
-}
-
-/* Botones del dock */
-.menu-btn2 {
-  padding:10px 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 90px;
-  height: 50px;
-  font-size: 11px;
-  background: #000000;
-  border: none;
-  border-radius: 12px;
-  color: rgb(255, 179, 0);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.menu-btn2:hover {
-  background: #e490fb;
-  transform: scale(1.0.9);
-  color: black;
-}
-
-/* Íconos */
-.material-symbols-outlined {
-  font-size: 26px;
-  line-height: 1;
-}
 
 #toggleHudButton {
   position: absolute; /* o fixed si quieres que siempre quede visible */
-  bottom: 10px;
+ bottom: 10px;
   right: 10px;
-  z-index: 10000;
+  z-index: 1000;
   padding: 10px 16px;
   font-size: 1rem;
   border: none;
@@ -200,20 +115,22 @@ header#mainHeader img#logo {
 }
 
 
+
 </style>
 </head>
 <body>
-   <header id="mainHeader">
-      <img src="https://virtualshubs.github.io/personalizador/3dtwinslogo2025:2026.png" alt="Logo" id="logo" />
-    <h1>3DTWINS</h1>
-  </header>
 
+  <div id="startScreen">
+    <h2>Ver</h2>
+    <button id="loadButton">ver</button>
+  </div>
+
+  <div id="appContainer">
 
 <div id="app">
   <div id="canvasWrap">
     <div class="topbar">
-      <div class="chip" id="modelName">No model</div>
- <button id="purchaseBtn" class="floating-btn"hidden>Comprar</button>
+      <div class="chip" id="modelName" hidden>No model</div>
 
 <div id="shoppingModal" style="display:none;position:fixed;margin:0px;top:28px;left:0;width:100%;height:100vh;background:rgba(0,0,0,0.85);justify-content:center;align-items:center;z-index: index 9999;">
   <div style="position:relative;width:100%;max-width:1000px;height:95%;background:#fff;border-radius:0px;overflow:hidden;display:flex;flex-direction:row;box-shadow:0 10px 25px rgba(0,0,0,0.4);">
@@ -236,8 +153,9 @@ header#mainHeader img#logo {
 
       <!-- Botones de acción -->
       <div style="display:flex;gap:12px;flex-wrap:wrap;">
-        <button id="addToCartBtn" style="flex:1;padding:12px 20px;font-family: Inter, system-ui, Arial;background:#34c41b;color:#000000;border:none;border-radius:18px;cursor:pointer;font-size:15px; display: none;">Comprar 🛒</button>
-         <button id="webshopbtn" style="flex:1;padding:12px 20px;font-family: Inter, system-ui, Arial;background:#34c41b;color:#000000;border:none;border-radius:18px;cursor:pointer;font-size:15px;">Comprar en tienda</button>
+        <button id="addToCartBtn" style="flex:1;padding:12px 20px;font-family: Inter, system-ui, Arial;background:#94f17f;color:#000000;border:none;border-radius:18px;cursor:pointer;font-size:15px; display: none;" >Comprar 🛒</button>
+        <button id="buyNowBtn" style="flex:1;padding:12px 20px;background:#94f17f;color:#333;border:none;border-radius:18px;cursor:pointer;font-size:15px;">Comprar ahora</button>
+      
       </div>
 
     </div>
@@ -246,15 +164,13 @@ header#mainHeader img#logo {
     <button id="closeShoppingModal" style="position:absolute;top:20px;right:20px;padding:6px 10px;background:#b61a3b;color:#fff;border:none;border-radius:24px;cursor:pointer;z-index:10;">X</button>
   </div>
 </div>
+
+
        <button id="playAnim">
   <span class="material-symbols-outlined">joystick</span>
 </button>
       <div class="chip" id="modelStatus" hidden>Idle</div>  
     </div>
-
-
-
-
     <canvas id="c"></canvas>
 
 <div id="catalogHUD" style="
@@ -280,12 +196,11 @@ font-family: Inter, system-ui, Arial;
   </div>
 </div>
 
+<button id="toggleHudButton">Personalizar</button>
 
-<!-- Botón que controla el HUD -->
-<button id="toggleHudButton" >Personalizar</button>
-
-    <div id="hudButtons" style="display: none;"></div> 
+  <div id="hudButtons" style="display: none;"></div> 
     <div id="floatMenu">
+
     
       <h4>Editar Material</h4>
      <input type="color" id="floatColor">
@@ -293,124 +208,49 @@ font-family: Inter, system-ui, Arial;
       <label>Textura<input type="file" id="floatTexture" accept="image/*"/></label>
       <button id="applyFloat" hidden>Aplicar</button>
     </div>
+
+
   </div>
 
-<div id="panel">
-
-<div id="iframeSceneModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:400px; background:white; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.3); z-index:9999; padding:20px;">
-  <span id="closeIframeSceneModal" style="cursor:pointer; position:absolute; top:10px; right:15px; font-size:18px;">&times;</span>
-  <h3>Iframe de la escena</h3>
-  <textarea id="iframeSceneCode" style="width:100%; height:120px;"></textarea>
-</div>
-
-
-
-
-
-<div id="catalogoModal" style="display:none; position:fixed; top:20%; left:20%; width:60%; background:#fff; padding:20px; border:1px solid #ccc; z-index:9999;">
-  <h3>URL del catálogo</h3>
-  <textarea id="catalogoURL" style="width:100%; height:100px;"></textarea>
-  <button id="cerrarModal">Cerrar</button>
-</div>
-
-
-
-
-
-
-
-
-<div id="rightSideMenu">
-  <button class="menu-btn" data-panel="CargasLoad">
-    <span class="material-symbols-outlined">cloud_upload</span>
-    Cargar
-  </button>
-  <button class="menu-btn" data-panel="panelConfigurador">
-    <span class="material-symbols-outlined">tune</span>
-    Configurar PRO
-  </button>
-  <button class="menu-btn" data-panel="Producto">
-    <span class="material-symbols-outlined">shopping_cart</span>
-    Shop PRO
-  </button>
-  <button class="menu-btn" data-panel="containerBlogPanel">
-    <span class="material-symbols-outlined">verified</span>
-    Sello oficial
-  </button>
-  <button class="menu-btn" data-panel="containerEnviromentPanel">
-    <span class="material-symbols-outlined">landscape</span>
-    Enviroment
-  </button>
-  <button class="menu-btn" data-panel="containerAnimationPanel">
-    <span class="material-symbols-outlined">animation</span>
-    Animaciones
-  </button>
-  <button class="menu-btn" data-panel="exportOptions">
-    <span class="material-symbols-outlined">ios_share</span>
-    Exportar
-  </button>
-  <button class="menu-btn" id="getSceneIframeBtn" data-panel="">Obtener iframe</button><!-- Modal -->
-   <button class="menu-btn" id="buyNowBtn" data-panel="">Ir a la escena</button>
-      
-      </div>
-
-
-
-<div id="CargasLoad" style="display:none;">
+  <div id="panel" hidden>
     <h3> <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px;">
-hub
+ smart_toy
   </span>Cargar modelo 3D</h3>
     <label>Modelo URL:
-      <input type="text" id="modelUrl" value="https://virtualshubs.github.io/personalizador/sudadera2.glb" />
+      <input type="text" id="modelUrl" value="https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf" />
     </label>
     <div style="display:flex; gap:8px;">
-      <button id="loadBtn">Cargar via url (recomendado)</button>
+      <button id="loadBtn">Cargar modelo por url</button>
       <button id="openFile">Subir (.glb/.gltf)</button>
       <input type="file" id="fileInput" accept=".glb,.gltf" />
+
     </div>
-    <!-- Input para probar la URL del modelo -->
-<input type="text" id="modelUrlInput" placeholder="Pega aquí la URL generada..." style="width:100%;margin:10px 0" hidden>
-<button id="loadModelFromUrlBtn" hidden>Cargar modelo desde URL</button>
+
+ <!-- Input para probar la URL del modelo -->
+<input type="text" id="modelUrlInput" placeholder="Pega aquí la URL generada..." style="width:100%;margin:10px 0">
+<button id="loadModelFromUrlBtn">Cargar modelo desde URL</button>
 
 
-</div>
   
-
-<div id="Producto" style="display:none;">
-      <h3> <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px;"> hive
-  </span>Producto y configuración de venta</h3>
 <div class="hud-option">
   <label>
     <input type="checkbox" id="toggleShopBtn"  />
     Mostrar botón Shop 🛒
   </label>
-</div><label for="inputTestBaseURL">Base URL de prueba:</label>
-<input 
-  type="text" 
-  id="inputTestBaseURL" 
-  placeholder="https://3dtwins.es/producto-personalizado" 
-  style="width: 300px;"
-/>
-<button id="updateBaseUrlBtn">Actualizar URL base</button>
-
 </div>
 
-<div id="panelConfigurador" style="display:none;">
-  <!-- Checkbox para mostrar/ocultar el botón Personalizar -->
+
+
+    <h3>Elementos:</h3>
+      <!-- Checkbox para mostrar/ocultar el botón Personalizar -->
 <label>
   <input type="checkbox" id="toggleButtonCheck" checked> Mostrar botón Personalizar
 </label>
 
-
-    <h3> <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px;"> pie_chart
-  </span>Configurar panel de producto personalizado</h3>
     <div id="meshList"></div>
-</div>
 
-<div id="containerBlogPanel" style="display:none;">
 <div id="blogPanel" style="display:block;padding:8px;background:#f9f9f9;width:300px;">
-      <h3> <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px;"> fingerprint
-  </span>Sello oficial para distribución</h3>
+  <h3>Sello oficial 3DT</h3>
   <label style="display:flex;align-items:center;gap:8px;">
     <input type="checkbox" id="toggleBlogHud" /> Mostrar último sello.
   </label>
@@ -418,42 +258,13 @@ hub
   <button id="createCatalogSeal" style="margin-top:10px;width:100%;padding:8px;">Crear nuevo sello.</button>
 </div>
 
- </div>
+ 
 
 
-<div id="purchasePanel" style="margin-top:12px; padding:8px; border-top:1px solid #eee;" hidden>
-  <h4 style="margin:0 0 8px 0">Comprar / Purchase</h4>
 
-  <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-    <input id="togglePurchaseBtnCheck" type="checkbox" />
-    <span>Activar botón de compra</span>
-  </label>
-
-  <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-    <select id="purchasePlatformSelect" style="flex:1;padding:6px;">
-      <option value="shopify">Shopify</option>
-      <option value="woocommerce">WooCommerce</option>
-      <option value="magento">Magento</option>
-      <option value="custom">Custom / Other</option>
-    </select>
-    <input id="purchaseBaseUrlInput" type="text" placeholder="https://tuweb.es/ (base URL)" style="flex:2;padding:6px;" />
-  </div>
-
-  <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-    <button id="savePurchaseBtn" style="padding:6px 10px;">Generar botón</button>
-    <button id="previewPurchaseBtn" style="padding:6px 10px;">Previsualizar URL</button>
-    <span id="purchaseUrlPreview" style="font-size:12px;color:#666;word-break:break-all;"></span>
-  </div>
-
-  <div style="font-size:12px;color:#666;">
-  </div>
-</div>
-
-
-<div id="containerEnviromentPanel" style="display:none;">
 <h3>
   <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px;">
-  fingerprint
+    interactive_space
   </span>
   Editar escenario
 </h3>
@@ -469,11 +280,6 @@ hub
   <label>Top Light: <input type="range" id="topLightIntensity" min="0" max="2" step="0.05" value="0.4"></label>
 </div>
 
-</div>
-
-
-
-<div id="containerAnimationPanel" style="display:none;">
 <div id="animationPanel">
   <h4>
     <span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px;">
@@ -500,33 +306,24 @@ hub
       </select>
     </label>
   </div>
-</div></div>
-
-
-<div id="exportOptions" style="display:none;">
-
+</div>
     <h3><span class="material-symbols-outlined" style="vertical-align: middle; margin-right: 6px;">
 output_circle
   </span>Descargar & Exportar</h3>
     <button id="exportBtn">Sellar gemelo digital</button>
     <a id="downloadLink" style="display:block; margin-top:8px;"></a>
     <button id="downloadFullHTML">Crear escena interoperable</button>
-    <button id="descargarLibrary" style="padding:8px 12px;margin:10px;">Descargar Biblioteca</button>
+    <button id="descargarLibrary" style="padding:8px 12px;margin:10px;" hidden>Descargar Biblioteca</button>
 <button id="downloadHTMLWithURLsBtn">Descargar HTML con URLs</button>
-<button id="createWidgetBtn">Crear Widget</button>
 
-
-
-
-<div id="containerAnimationPanel" >
     <div style="margin-top:8px">
   <button id="encodeSporeBtn">Generar Spore</button>
   <button id="decodeSporeBtn">Reconstruir Spore </button>
   <button id="downloadSporeBtn">Descargar Spore </button>
-  <button id="manifestSporeBtn">🌿 Manifestar</button></div>
+  <button id="manifestSporeBtn">🌿 Manifestar</button>
 
 </div>
-</div>
+
    
     <div id="floatButtons">
 <div id="sceneControls">
@@ -536,10 +333,10 @@ output_circle
 
 </div>
 
-<div id="libraryContainer" style="display:flex; gap:10px;"></div>
+<div id="libraryContainer" style="display:flex; gap:10px;" hidden></div>
   </div>
 
-
+  </div>
 
 <script src="https://unpkg.com/three@0.134.0/build/three.min.js"></script>
 <script src="https://unpkg.com/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
@@ -548,6 +345,37 @@ output_circle
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 
 <script>
+
+window.addEventListener("DOMContentLoaded", () => {
+  const input = document.getElementById("modelUrlInput");
+  const btn = document.getElementById("loadModelFromUrlBtn");
+  const startScreen = document.getElementById("startScreen");
+  const appContainer = document.getElementById("appContainer");
+
+  if (!input || !btn || !startScreen || !appContainer) return;
+
+  const fullUrl = window.location.href;
+  input.value = fullUrl;
+
+  startScreen.style.display = "none";
+  appContainer.style.display = "block";
+
+  // 🔹 Detectar si contiene datos de escena
+  const params = new URLSearchParams(fullUrl.split("?")[1]);
+  const isScene = params.has("scene") || params.has("hud") || params.has("bgColor");
+
+  setTimeout(() => {
+    if (isScene) {
+      modelUrlInput(fullUrl);
+    } else {
+      btn.click(); // usa la lógica normal de producto
+    }
+  }, 500);
+});
+
+
+
+
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({
   canvas,
@@ -635,18 +463,16 @@ const groups = {};
 
 const libraryModels = [
   { name: "Vaso café", src: "https://virtualshubs.github.io/personalizador/cafellevar.glb" },
-  { name: "Termo café", src: "https://virtualshubs.github.io/personalizador/vasoconfigurado.glb" },
-    { name: "Bicicleta de montaña", src: "https://virtualshubs.github.io/personalizador/BicicletaMontaña.glb" },
-       { name: "Bicicleta de montaña", src: "https://virtualshubs.github.io/personalizador/MochilaBitonoPersonalizada.glb" },
+  { name: "Termo café", src: "https://virtualshubs.github.io/personalizador/ring.glb" },
 ];
 
 const libraryContainer = document.createElement('div');
 libraryContainer.id = 'libraryContainer';  
-libraryContainer.style.width = "80px";
-libraryContainer.style.height = "80%";
+libraryContainer.style.width = "0px";
+libraryContainer.style.height = "0%";
 libraryContainer.style.background = "#fff";
 libraryContainer.style.borderRadius = "12px";
-libraryContainer.style.padding = "6px";
+libraryContainer.style.padding = "0px";
 libraryContainer.style.display = "flex";
 libraryContainer.style.flexDirection = "column";
 libraryContainer.style.gap = "8px";
@@ -834,11 +660,6 @@ function loadGLB(url, name = "", onLoaded) {
       let baseSceneName = "3DTWINS_SCENE";
       let counter = 1;
 
-
-
-
-
-
       // --- Renombrar escenas para evitar conflictos ---
       currentModel.traverse((child) => {
         if (child.isScene || child.type === "Object3D") {
@@ -849,6 +670,8 @@ function loadGLB(url, name = "", onLoaded) {
           }
         }
       });
+
+        const skipMaterialReset = window.SKIP_MATERIAL_RESET || false;
 
       // --- Procesar meshes: blogs y sello ---
       await currentModel.traverse(async (child) => {
@@ -913,10 +736,6 @@ function loadGLB(url, name = "", onLoaded) {
         } else { scene.add(currentModel); }
       } catch (err) { console.error("Error Spore:", err); scene.add(currentModel); }
 
-
-
-
-
       // --- Configuración materiales ---
       currentModel.traverse((child) => {
         if (child.isMesh && child.material) {
@@ -928,6 +747,12 @@ function loadGLB(url, name = "", onLoaded) {
             if (mat.metalnessMap) mat.metalnessMap.anisotropy = renderer.capabilities.getMaxAnisotropy();
             mat.needsUpdate = true;
           });
+
+
+
+
+
+          
           const allowButtons = child.userData.materialConfig?.allowConfigButtons;
           if (allowButtons && !groups[child.uuid]) groups[child.uuid] = [child];
         }
@@ -1788,7 +1613,6 @@ function createMeshNode(mesh){
   // Botón renombrar
   const renameBtn = document.createElement('button');
   renameBtn.textContent = 'Name';
- 
   renameBtn.style.marginLeft = '6px';
   renameBtn.style.fontSize = '12px';
   renameBtn.onclick = (e)=>{
@@ -2583,29 +2407,6 @@ btn.onclick = () => {
   descargarSporeLibrary(spore);
 };
 
-function rehidratarSporeLibrary(sporeModel) {
-  if (!sporeModel?.userData?.libraryTokens) return;
-
-  const tokens = sporeModel.userData.libraryTokens;
-
-  tokens.forEach(token => {
-    // Crear objeto 3D mínimo por cada slot
-    const slotObj = new THREE.Object3D();
-    slotObj.name = token.name || "slotModel";
-    slotObj.userData = {
-      modelUrl: token.modelUrl,
-      token: token.token,
-      materialConfig: token.materialConfig || {},
-      sceneSettings: token.sceneSettings || {},
-      animationSettings: token.animationSettings || {}
-    };
-
-    // Añadir a la escena o pasar a handleParsedGltf si quieres mantener el flujo original
-    handleParsedGltf({ scene: slotObj }, slotObj.name);
-  });
-
-  console.log("SporeLibrary rehidratada:", tokens.length, "slots.");
-}
 
 
 // ---------------------- Spore / Particle-memory utilities ----------------------
@@ -3236,6 +3037,9 @@ function getFinalModelName(model, fileName) {
   }
   return model.userData.originalName || model.name || "Modelo desconocido";
 }
+
+
+
 function getModelConfigDetailsStructured(model) {
   if (!model) return "<p>Sin información de configuración</p>";
 
@@ -3352,13 +3156,11 @@ dayLight.shadow.bias = -0.001;
 }
 
 
-// --- Cerrar modal ---
 document.getElementById('closeShoppingModal').onclick = () => {
   document.getElementById('shoppingModal').style.display = 'none';
 };
 
-// 🔹 Al cargar un modelo
-let currentFileName = ""; // <-- guardar nombre del archivo cargado
+let currentFileName = ""; 
 
 function addProductToPage(model, fileName) {
   if (!model) return;
@@ -3418,7 +3220,6 @@ function addProductToPage(model, fileName) {
   container.appendChild(productCard);
 }
 
-// --- Controlar visibilidad del botón Shop ---
 document.addEventListener("DOMContentLoaded", () => {
   const toggleShop = document.getElementById('toggleShopBtn');
 
@@ -3431,7 +3232,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
-// Buscar token más reciente dentro de cualquier parte del modelo
+
+
 function findLatestToken(model) {
   let latestToken = null;
   let latestDate = 0;
@@ -3493,78 +3295,9 @@ function findLatestToken(model) {
 }
 
 
-
-// --- gestiona la url del visor debe mantenerse así ---
 function generateProductUrl(model, fileName) {
   const finalName = getFinalModelName(model, fileName);
 
-  const qtyInput = document.getElementById('productQuantity');
-  const qty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
-
-  const baseUrl = window.customBaseUrl || 'https://virtualshubs.github.io/personalizador/3dtvisor.html';
-
-  let token = null;
-  model.traverse((child) => {
-    if (child.userData?.token && !token) token = child.userData.token;
-  });
-  token = token || "no-token-found";
-
-  // Extraer configuración
-  const configItems = [];
-  model.traverse((child) => {
-    if (child.isMesh) {
-      const objName = child.name || "unnamed";
-      let colorHex = child.userData?.config?.color;
-      if (!colorHex && child.material?.color) {
-        colorHex = "#" + child.material.color.getHexString();
-      }
-      if (colorHex) configItems.push(`${objName}:${colorHex}`);
-    }
-  });
-
-  const configParam = encodeURIComponent(configItems.join('|'));
-  const modelUrlParam = encodeURIComponent(model.userData?.modelUrl || ''); // URL del modelo original
-
-return `${baseUrl}?name=${encodeURIComponent(finalName)}&config=${configParam}&quantity=${qty}&token=${token}&modelUrl=${modelUrlParam}`;
-}
-
-// --- Botón de compra existente, sin tocar ID ---
-const buyBtn = document.getElementById('buyNowBtn');
-buyBtn.addEventListener('click', () => {
-  const url = generateProductUrl(currentModel, currentFileName);
-  window.open(url, '_blank'); // abre la URL en otra pestaña
-});
-
-// --- Forzar estructura HTTPS y limpiar cualquier prefijo ---
-function enforceBaseUrlStructure(urlInput) {
-  if (!urlInput) return 'https://3dtwins.es/producto-personalizado';
-
-  // 1. Eliminamos prefijos tipo http://, https://, localhost, 127.0.0.1, file://, etc.
-  let clean = urlInput
-    .replace(/^https?:\/\//i, '')   // quita http:// o https://
-    .replace(/^localhost(:\d+)?\//i, '')  // quita localhost
-    .replace(/^127\.0\.0\.1(:\d+)?\//i, '') // quita 127.0.0.1
-    .replace(/^file:\/\/\/?/i, '') // quita file://
-    .replace(/^www\./i, ''); // opcional: elimina www. si ya está al inicio
-
-  // 2. Si no tiene punto, no parece un dominio válido → fallback
-  if (!clean.includes('.')) clean = '3dtwins.es/producto-personalizado';
-
-  // 3. Forzamos el inicio con https://
-  return 'https://' + clean;
-}
-
-// --- Input listener + botón para actualizar la base URL global ---
-document.getElementById('updateBaseUrlBtn').addEventListener('click', () => {
-  const userInput = document.getElementById('inputTestBaseURL').value.trim();
-  window.customBaseUrl = enforceBaseUrlStructure(userInput);
-  console.log("✅ Base URL actualizada:", window.customBaseUrl);
-  alert(`Base URL actualizada:\n${window.customBaseUrl}`);
-});
-
-// --- Generador de la URL final del producto ---
-function generateProductUrl2(model, fileName) {
-  const finalName = getFinalModelName(model, fileName);
   const qtyInput = document.getElementById('productQuantity');
   const qty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
 
@@ -3590,18 +3323,75 @@ function generateProductUrl2(model, fileName) {
   });
 
   const configParam = encodeURIComponent(configItems.join('|'));
-  const modelUrlParam = encodeURIComponent(model.userData?.modelUrl || '');
+  const modelUrlParam = encodeURIComponent(model.userData?.modelUrl || ''); // URL del modelo original
 
-  // 🔥 Estructura final forzada con HTTPS + URL base limpia
   return `${baseUrl}?name=${encodeURIComponent(finalName)}&config=${configParam}&quantity=${qty}&token=${token}&modelUrl=${modelUrlParam}`;
 }
 
-// --- Botón de compra ---
-const webshopbtn = document.getElementById('webshopbtn');
-webshopbtn.addEventListener('click', () => {
-  const url = generateProductUrl2(currentModel, currentFileName);
-  window.open(url, '_blank');
+// --- Botón de compra existente, sin tocar ID ---
+const buyBtn = document.getElementById('buyNowBtn');
+buyBtn.addEventListener('click', () => {
+  const url = generateProductUrl(currentModel, currentFileName);
+  window.open(url, '_blank'); // abre la URL en otra pestaña
 });
+
+// --- Función para aplicar la configuración de colores desde URL ---
+function applyConfigToModel(model, configStr) {
+  if (!model || !configStr) return;
+
+  try {
+    const decodedConfig = decodeURIComponent(configStr);
+    const configItems = decodedConfig.split('|');
+    const colorMap = {};
+
+    // Crear un mapa de meshName -> colorHex
+    configItems.forEach(item => {
+      const [meshName, colorHex] = item.split(':');
+      if (meshName && colorHex) colorMap[meshName.trim()] = colorHex.trim();
+    });
+
+    // 🔹 Aplicar colores
+    model.traverse(child => {
+      if (child.isMesh && colorMap[child.name]) {
+        const newColor = colorMap[child.name];
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach((mat, i) => {
+          // 🧩 Clonar material si no está clonado aún
+          if (!mat.isCloned) {
+            const clonedMat = mat.clone();
+            clonedMat.isCloned = true;
+            if (Array.isArray(child.material)) {
+              child.material[i] = clonedMat;
+            } else {
+              child.material = clonedMat;
+            }
+          }
+
+          const activeMat = Array.isArray(child.material) ? child.material[i] : child.material;
+
+          // 🧹 Quitar textura para que el color se vea
+          if (activeMat.map) {
+            activeMat.map = null;
+          }
+
+          // 🎨 Aplicar color
+          if (activeMat.color) {
+            activeMat.color.set(newColor);
+          }
+
+          activeMat.needsUpdate = true;
+        });
+
+        console.log(`🎨 ${child.name} → ${newColor}`);
+      }
+    });
+
+    console.log('✅ Configuración aplicada desde URL:', colorMap);
+  } catch (err) {
+    console.error('❌ Error al aplicar configuración desde URL:', err);
+  }
+}
+
 
 // --- Función para cargar modelo desde input URL (con restauración de colores) ---
 document.getElementById('loadModelFromUrlBtn').addEventListener('click', () => {
@@ -3655,9 +3445,9 @@ document.getElementById('loadModelFromUrlBtn').addEventListener('click', () => {
   });
 });
 
+  
 
-
-// --- Tu exportHTMLWithURLs y helper siguen igual (no interoperable) ---
+// --- Tu exportHTMLWithURLs y helper siguen igual ---
 async function exportHTMLWithURLs() {
   const panel = document.getElementById('panel');
   const prevDisplayPanel = panel ? panel.style.display : null;
@@ -3730,90 +3520,128 @@ document.getElementById('downloadHTMLWithURLsBtn').addEventListener('click', exp
 
 
 
+// --- Función para cargar una escena completa desde URL ---
+async function loadSceneFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
 
-async function CrearWidget() {
-  // 🔹 Comprobar que hay un modelo cargado
-  if (!currentModel) {
-    alert("Selecciona o carga un modelo primero.");
-    return;
-  }
+    const modelUrl = urlParams.get('modelUrl');
+    const sceneFullStr = urlParams.get('sceneFull');
 
-  try {
-    // 🔹 Generar la URL del modelo directamente usando la función existente
-    const urlProducto = generateProductUrl(currentModel, currentFileName);
+    if (!modelUrl) return console.warn("No hay URL de modelo en la página.");
 
-    // 🔹 Cargar la plantilla del widget
-    const res = await fetch('widget_template.html');
-    if (!res.ok) throw new Error("No se pudo cargar la plantilla");
-    let template = await res.text();
+    // Cargar el modelo base con LoadGLB
+    loadGLB(modelUrl, "Modelo desde URL", async () => {
 
-    // 🔹 Sustituir la URL en el template
-    template = template.replace('{{MODEL_URL}}', urlProducto);
+        if (!sceneFullStr) return; // No hay datos extra, solo modelo
 
-    // 🔹 Descargar el widget como HTML
-    const blob = new Blob([template], { type: 'text/html' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'widget_publicitario.txt';
-    link.click();
-    URL.revokeObjectURL(link.href);
+        try {
+            // 🔹 Decodificar todos los datos de la escena
+            const sceneFull = JSON.parse(decodeURIComponent(sceneFullStr));
+            const { sceneData, bgColor, hud, interoperable } = sceneFull;
 
-  } catch (err) {
-    console.error(err);
-    alert("Error al generar el widget: " + err.message);
-  }
+            // 🔹 Reescribir metadatos del modelo según la URL
+            if (sceneData && currentModel) {
+                currentModel.traverse(child => {
+                    const data = sceneData[child.name || child.uuid];
+                    if (data) child.userData = data;
+                });
+            }
+
+            // 🔹 Restaurar HUD
+            if (hud) applyHUDState(JSON.parse(hud));
+
+            // 🔹 Restaurar fondo
+            if (bgColor) {
+                const color = new THREE.Color(bgColor.startsWith('#') ? bgColor : '#' + bgColor);
+                scene.background = color;
+                renderer.setClearColor(color);
+                const bgInput = document.getElementById('bgColorPicker');
+                if (bgInput) bgInput.value = bgColor;
+            }
+
+            // 🔹 Restaurar animaciones
+            restoreAnimationsFromMetadata();
+
+            // 🔹 Restaurar botones, paneles y compra
+            updateHUD();
+            integrateShoppingButton();
+            ensureShoppingButtonPersistence();
+
+            // 🔹 Ajustar cámara y controles
+            const box = new THREE.Box3().setFromObject(currentModel);
+            const center = new THREE.Vector3();
+            box.getCenter(center);
+            const size = new THREE.Vector3();
+            box.getSize(size);
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const fov = camera.fov * (Math.PI / 180);
+            let distance = maxDim / (2 * Math.tan(fov / 2)) * 1.5;
+            camera.position.set(center.x + distance, center.y + distance, center.z + distance);
+            camera.lookAt(center);
+            controls.target.copy(center);
+            controls.update();
+            controls.minDistance = maxDim * 0.5;
+            controls.maxDistance = maxDim * 3;
+
+            // 🔹 UI
+            document.getElementById("modelName").textContent = currentFileName || modelUrl.split("/").pop();
+            document.getElementById("modelStatus").textContent = "Escena lista";
+
+            // 🔹 Lista de meshes y animación de entrada
+            buildMeshList();
+            animateEntry(currentModel);
+
+        } catch (err) {
+            console.error("❌ Error al decodificar y aplicar SceneFromURL:", err);
+        }
+    });
 }
 
-// 🔹 Evento para el botón
-document.getElementById('createWidgetBtn').addEventListener('click', CrearWidget);
-
-
-document.getElementById('createWidgetBtn').addEventListener('click', CrearWidget);
-
-
-
-
-// --- Generar URL simple del modelo ---
-function getSceneFromURL(model, fileName) {
-    // 🔹 Base de la URL del modelo usando la función existente
-    const baseModelUrl = generateProductUrl(model, fileName);
-    return baseModelUrl; // Solo la URL, sin extras
-}
-
-// --- Evento para abrir modal con iframe ---
-document.getElementById('getSceneIframeBtn').addEventListener('click', () => {
-    const urlEscena = getSceneFromURL(currentModel, currentFileName);
-    const iframeText = `<iframe src="${urlEscena}" width="800" height="600" frameborder="0" allowfullscreen></iframe>`;
-
-    const modal = document.getElementById('iframeSceneModal');
-    modal.style.display = 'block';
-    document.getElementById('iframeSceneCode').value = iframeText;
-});
-
-// --- Cerrar modal ---
-document.getElementById('closeIframeSceneModal').addEventListener('click', () => {
-    document.getElementById('iframeSceneModal').style.display = 'none';
-});
-
-let activePanel = null;
-
-document.querySelectorAll('.menu-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const panel = document.getElementById(btn.dataset.panel);
-    if (!panel) return;
-
-    // Si hay un panel abierto y no es este, lo cerramos
-    if (activePanel && activePanel !== panel) {
-      activePanel.style.display = 'none';
+// --- Función para restaurar HUD ---
+function applyHUDState(hudState) {
+    if (!hudState) return;
+    for (const key in hudState) {
+        const el = document.getElementById(key);
+        if (el) el.style.display = hudState[key] ? 'block' : 'none';
     }
+}
 
-    // Toggle del panel actual
-    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+// --- Función para restaurar animaciones desde metadatos ---
+function restoreAnimationsFromMetadata() {
+    if (!currentModel) return;
+    currentModel.traverse(child => {
+        const animSettings = child.userData?.sceneSettings?.animationSettings;
+        if (animSettings) {
+            // Restaurar cada parámetro de animación
+            const animCheck = document.getElementById('anim360Check');
+            const enableAnimCheckbox = document.getElementById('enableAnim');
+            const playBtn = document.getElementById('playAnim');
+            const animTypeSelect = document.getElementById('animType');
 
-    // Actualizamos el panel activo
-    activePanel = panel.style.display === 'block' ? panel : null;
-  });
-});
+            if (animCheck) animCheck.checked = child.userData.sceneSettings?.is360Active ?? false;
+            if (controls) controls.autoRotate = child.userData.sceneSettings?.is360Active ?? false;
+            if (enableAnimCheckbox) enableAnimCheckbox.checked = animSettings.animEnabled ?? false;
+            if (playBtn) playBtn.style.display = animSettings.animEnabled ? 'inline-block' : 'none';
+            if (animTypeSelect) {
+                const animType = animSettings.animType ?? '360';
+                if (![...animTypeSelect.options].some(opt => opt.value === animType)) {
+                    const opt = document.createElement("option");
+                    opt.value = animType;
+                    opt.textContent = animType.charAt(0).toUpperCase() + animType.slice(1);
+                    animTypeSelect.appendChild(opt);
+                }
+                animTypeSelect.value = animType;
+                animTypeSelect.dispatchEvent(new Event('change'));
+            }
+
+            const animDurationInput = document.getElementById('animDuration');
+            const animSpeedInput = document.getElementById('animSpeed');
+            if (animDurationInput) animDurationInput.value = animSettings.animDuration ?? 3;
+            if (animSpeedInput) animSpeedInput.value = animSettings.animSpeed ?? 1;
+        }
+    });
+}
+
 
 
 const toggleButton = document.getElementById('toggleHudButton');
@@ -3840,7 +3668,6 @@ toggleButton.addEventListener('click', () => {
 });
 
 
-
 function resizeRenderer(){
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
@@ -3861,4 +3688,3 @@ render();
 </script>
 
 </body></html>
-
