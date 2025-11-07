@@ -673,29 +673,46 @@ function loadGLB(url, name = "", onLoaded) {
 
         const skipMaterialReset = window.SKIP_MATERIAL_RESET || false;
 
-      // --- Procesar meshes: blogs y sello ---
-      await currentModel.traverse(async (child) => {
-        if (child.isMesh) {
-          blogTargetMesh = child;
+     // --- Procesar meshes: blogs y sello ---
+await currentModel.traverse(async (child) => {
+  if (child.isMesh) {
+    blogTargetMesh = child;
 
-          if (!child.userData.blogs) child.userData.blogs = [];
-          if (!child.userData.catalogSeal) {
-            const defaultEntry = {
-              text: '3D Twins oficial',
-              author: '3D Twins',
-              desc: 'Sello de autenticidad automáticamente',
-              date: new Date().toLocaleString(),
-              token: generarToken(),
-              hash: '',
-            };
-            defaultEntry.hash = await sha256(defaultEntry.text + defaultEntry.author + defaultEntry.date + defaultEntry.token);
-            child.userData.catalogSeal = defaultEntry;
-            child.userData.blogs.push(defaultEntry);
-          }
+    // Inicializar blogs si no existen
+    if (!child.userData.blogs) child.userData.blogs = [];
 
-          renderBlogPanel(child);
-        }
-      });
+    // Crear sello si no existe
+    if (!child.userData.catalogSeal) {
+      const defaultEntry = {
+        text: '3D Twins oficial',
+        author: '3D Twins',
+        desc: 'Sello de autenticidad automáticamente',
+        date: new Date().toLocaleString(),
+        token: generarToken(),
+        hash: '',
+      };
+      defaultEntry.hash = await sha256(defaultEntry.text + defaultEntry.author + defaultEntry.date + defaultEntry.token);
+      child.userData.catalogSeal = defaultEntry;
+      child.userData.blogs.push(defaultEntry);
+    }
+
+    // Renderizar panel lateral
+    renderBlogPanel(child);
+
+    // 🔹 Actualizar HUD solo si los metadatos indican mostrarlo
+    const showBlog = child.userData?.meta?.showBlog ?? true; // true por defecto si no hay dato
+    toggleBlogHud.checked = showBlog;
+    toggleBlogHud.dispatchEvent(new Event('change')); // fuerza que se actualice la visualización
+
+    // 🔹 Mostrar siempre el último sello del modelo
+    if (showBlog) {
+      mostrarUltimoSello(child);
+    } else {
+      catalogHUD.style.display = 'none';
+    }
+  }
+});
+
 
       // --- Reset selección y outline ---
       selectedMesh = null;
