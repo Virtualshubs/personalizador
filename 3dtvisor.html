@@ -380,6 +380,66 @@ window.addEventListener("DOMContentLoaded", () => {
 
   gtag('config', 'G-1XW6FG6SRH');
 
+
+
+(function(){
+  let startTime = Date.now();
+
+  function trackEvent(action, label) {
+    if(window.gtag){
+      gtag('event', action, { 'event_label': label });
+      if(window.userGAId) gtag('config', window.userGAId, { 'event_label': label });
+    }
+  }
+
+  // Track clicks dentro del canvas (visor 3D)
+  const canvas = document.getElementById('c');
+  if(canvas){
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width).toFixed(2);
+      const y = ((e.clientY - rect.top) / rect.height).toFixed(2);
+      trackEvent('click_canvas', `x:${x},y:${y}`);
+    });
+  }
+
+  // Track de animaciones (suponiendo que tienes funciones de playAnim, enableAnim...)
+  const playAnimBtn = document.getElementById('playAnim');
+  if(playAnimBtn){
+    playAnimBtn.addEventListener('click', () => trackEvent('click_animBtn', 'playAnim'));
+  }
+
+  const enableAnim = document.getElementById('enableAnim');
+  if(enableAnim){
+    enableAnim.addEventListener('change', (e) => trackEvent('toggle_animation', e.target.checked));
+  }
+
+  // Track HUD y botones flotantes
+  document.querySelectorAll('button, input').forEach(el=>{
+    const type = el.tagName.toLowerCase();
+    const id = el.id || '';
+    const classes = el.className || '';
+    const panel = el.dataset.panel || '';
+    const label = `${id}|${classes}|${panel}|${el.textContent.trim()}`;
+    const eventType = (el.type==='range'||el.type==='color'||el.type==='checkbox')?'change':'click';
+    el.addEventListener(eventType, ()=>trackEvent(eventType,label));
+  });
+
+  // Track tiempo total en visor
+  window.addEventListener('beforeunload', ()=>{
+    const duration = ((Date.now()-startTime)/1000).toFixed(1);
+    trackEvent('session_duration', `${duration}s`);
+  });
+})();
+
+
+
+
+
+
+
+      
+
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({
   canvas,
