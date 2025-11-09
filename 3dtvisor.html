@@ -410,7 +410,8 @@ const controls = new THREE.OrbitControls(camera, renderer.domElement);
 
 //libreria luces
 
-const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+const ambient = new THREE.AmbientLight(0xffffff, 0.9);
+
 scene.add(ambient);
 
 const dayLight = new THREE.DirectionalLight(0xffffff, 0.6);
@@ -431,6 +432,12 @@ scene.add(keyLight);
 
 
   
+// Luz frontal suave para resaltar el modelo desde la cámara
+const frontLight = new THREE.DirectionalLight(0xffffff, 0.9);
+frontLight.position.set(0, 5, 15); // justo frente al modelo
+frontLight.target.position.set(0, 0, 0); // apunta al centro de la escena
+scene.add(frontLight);
+scene.add(frontLight.target);
 
 
 const fillLight = new THREE.DirectionalLight(0xffffff, 0.25);
@@ -446,6 +453,7 @@ topLight.position.set(0, 10, 10);
 topLight.castShadow = true;
 topLight.shadow.radius = 15;
 scene.add(topLight);
+
 
 
 const loader = new THREE.GLTFLoader();
