@@ -374,108 +374,103 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
 
-  gtag('config', 'G-1XW6FG6SRH');
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
 
-(function() {
-  // --- Configuración de GA4 ---
-  const GA_MEASUREMENT_ID = 'G-XXXXXXXXXX'; // tu código de Analytics
+// --- GA por defecto ---
+const GA_DEFAULT = 'G-1XW6FG6SRH';
 
-  // --- Generar un ID de sesión anónimo para el usuario ---
-  const sessionId = sessionStorage.getItem('vhSessionId') || crypto.randomUUID();
-  sessionStorage.setItem('vhSessionId', sessionId);
+// --- Obtener GA del usuario desde la URL ---
+function getUserGAFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('userGA') || '';
+}
+const GA_USER = getUserGAFromURL();
 
-  // --- Función de envío de eventos ---
-  function trackEvent(name, params = {}) {
-    if (!window.gtag) return;
-    gtag('event', name, {
-      session_id: sessionId,
-      page_url: window.location.href,
-      referrer: document.referrer,
-      ...params
-    });
-  }
+// --- Configuración inicial de ambos GA ---
+if(GA_DEFAULT) gtag('config', GA_DEFAULT);
+if(GA_USER) gtag('config', GA_USER);
 
-  // --- Tiempo en el visor ---
-  let startTime = Date.now();
-  window.addEventListener('beforeunload', () => {
-    const duration = Math.round((Date.now() - startTime) / 1000);
-    trackEvent('session_duration//visor', {duration_seconds: duration});
+// --- Generar ID de sesión anónimo ---
+const sessionId = sessionStorage.getItem('vhSessionId') || crypto.randomUUID();
+sessionStorage.setItem('vhSessionId', sessionId);
+
+// --- Función de envío de eventos a ambos GA ---
+function trackEvent(name, params = {}) {
+  if (!window.gtag) return;
+
+  const eventParams = {
+    session_id: sessionId,
+    page_url: window.location.href,
+    referrer: document.referrer,
+    ...params
+  };
+
+  // Enviar a GA por defecto
+  if(GA_DEFAULT) gtag('event', name, {...eventParams, send_to: GA_DEFAULT});
+
+  // Enviar a GA del usuario si existe
+  if(GA_USER) gtag('event', name, {...eventParams, send_to: GA_USER});
+}
+
+// --- Tiempo en el editor ---
+let startTime = Date.now();
+window.addEventListener('beforeunload', () => {
+  const duration = Math.round((Date.now() - startTime) / 1000);
+  trackEvent('session_duration', {duration_seconds: duration});
+});
+
+// --- Trackeo de clicks globales ---
+document.body.addEventListener('click', (e) => {
+  const elementId = e.target.id || e.target.dataset.trackId || e.target.tagName;
+  trackEvent('click', {element_id: elementId, element_type: e.target.tagName});
+});
+
+// --- Trackeo de cambios en inputs, selects, checkboxes ---
+document.body.addEventListener('change', (e) => {
+  const elementId = e.target.id || e.target.dataset.trackId || e.target.tagName;
+  trackEvent('change', {
+    element_id: elementId,
+    element_type: e.target.tagName,
+    value: e.target.value
   });
+});
 
-  // --- Trackeo de clicks globales ---
-  document.body.addEventListener('click', (e) => {
-    let elementId = e.target.id || e.target.dataset.trackId || e.target.tagName;
-    trackEvent('click//visor', {element_id: elementId, element_type: e.target.tagName});
-  });
+// --- Eventos específicos del editor ---
+const animBtn = document.getElementById('playAnim');
+if(animBtn) animBtn.addEventListener('click', () => trackEvent('click_playAnim', {element_id:'playAnim'}));
 
-  // --- Trackeo de cambios en inputs, selects, checkboxes ---
-  document.body.addEventListener('change', (e) => {
-    let elementId = e.target.id || e.target.dataset.trackId || e.target.tagName;
-    trackEvent('change//visor', {
-      element_id: elementId,
-      element_type: e.target.tagName,
-      value: e.target.value
-    });
-  });
+const toggleHudBtn = document.getElementById('toggleHudButton');
+if(toggleHudBtn) toggleHudBtn.addEventListener('click', () => trackEvent('toggle_hud', {element_id:'toggleHudButton'}));
 
-  // --- Eventos específicos del visor ---
-  const animBtn = document.getElementById('playAnim');
-  if(animBtn) animBtn.addEventListener('click', () => {
-    trackEvent('click_playAnim//visor', {element_id:'playAnim'});
-  });
+const purchaseBtn = document.getElementById('purchaseBtn');
+if(purchaseBtn) purchaseBtn.addEventListener('click', () => trackEvent('click_purchaseBtn', {element_id:'purchaseBtn'}));
 
-  const toggleHudBtn = document.getElementById('toggleHudButton');
-  if(toggleHudBtn) toggleHudBtn.addEventListener('click', () => {
-    trackEvent('toggle_hud//visor', {element_id:'toggleHudButton'});
-  });
+// --- Trackeo de paneles abiertos ---
+document.querySelectorAll('.menu-btn').forEach(btn => {
+  btn.addEventListener('click', () => trackEvent('open_panel', {panel_id: btn.dataset.panel || btn.id}));
+});
 
-  const purchaseBtn = document.getElementById('purchaseBtn');
-  if(purchaseBtn) purchaseBtn.addEventListener('click', () => {
-    trackEvent('click_purchaseBtn//visor', {element_id:'purchaseBtn'});
-  });
+// --- Trackeo de HUD inputs ---
+const floatColor = document.getElementById('floatColor');
+if(floatColor) floatColor.addEventListener('change', (e) => trackEvent('hud_color_change', {value: e.target.value}));
 
-  // --- Paneles abiertos ---
-  const menuButtons = document.querySelectorAll('.menu-btn');
-  menuButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      trackEvent('open_panel//visor', {panel_id: btn.dataset.panel || btn.id});
-    });
-  });
+const floatOpacity = document.getElementById('floatOpacity');
+if(floatOpacity) floatOpacity.addEventListener('change', (e) => trackEvent('hud_opacity_change', {value: e.target.value}));
 
-  // --- HUD inputs ---
-  const floatColor = document.getElementById('floatColor');
-  if(floatColor) floatColor.addEventListener('change', (e) => {
-    trackEvent('hud_color_change//visor', {value: e.target.value});
-  });
-  const floatOpacity = document.getElementById('floatOpacity');
-  if(floatOpacity) floatOpacity.addEventListener('change', (e) => {
-    trackEvent('hud_opacity_change//visor', {value: e.target.value});
-  });
+// --- Trackeo de sliders de luces ---
+['ambientIntensity','dayLightIntensity','keyLightIntensity','fillLightIntensity','rimLightIntensity','topLightIntensity'].forEach(id => {
+  const input = document.getElementById(id);
+  if(input) input.addEventListener('change', (e) => trackEvent('light_change', {light: id, value: e.target.value}));
+});
 
-  // --- Sliders de luces ---
-  const lightInputs = ['ambientIntensity','dayLightIntensity','keyLightIntensity','fillLightIntensity','rimLightIntensity','topLightIntensity'];
-  lightInputs.forEach(id => {
-    const input = document.getElementById(id);
-    if(input) input.addEventListener('change', (e) => {
-      trackEvent('light_change//visor', {light: id, value: e.target.value});
-    });
-  });
-
-  // --- Exportaciones y descargas ---
-  const exportBtns = ['exportBtn','downloadFullHTML','descargarLibrary','downloadHTMLWithURLsBtn','createWidgetBtn','exportSceneBtn','encodeSporeBtn','decodeSporeBtn','downloadSporeBtn','manifestSporeBtn'];
-  exportBtns.forEach(id => {
-    const btn = document.getElementById(id);
-    if(btn) btn.addEventListener('click', () => {
-      trackEvent('export_action//visor', {button_id:id});
-    });
-  });
-
-})();
-
+// --- Trackeo de exportaciones y descargas ---
+['exportBtn','downloadFullHTML','descargarLibrary','downloadHTMLWithURLsBtn','createWidgetBtn','exportSceneBtn','encodeSporeBtn','decodeSporeBtn','downloadSporeBtn','manifestSporeBtn'].forEach(id => {
+  const btn = document.getElementById(id);
+  if(btn) btn.addEventListener('click', () => trackEvent('export_action', {button_id:id}));
+});
 
 
       
