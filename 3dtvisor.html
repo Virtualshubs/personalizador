@@ -382,11 +382,18 @@ gtag('js', new Date());
 // --- GA por defecto (tuyo) ---
 const GA_DEFAULT = 'G-1XW6FG6SRH';
 
-// --- Obtener GA del usuario desde la URL ---
 function getUserGAFromURL() {
   const params = new URLSearchParams(window.location.search);
-  return params.get('userGA') || '';
+  const encodedGA = params.get('uGA');
+  if (!encodedGA) return '';
+  try {
+    return atob(decodeURIComponent(encodedGA)); // Decodifica Base64
+  } catch (err) {
+    console.warn('Error al decodificar GA del usuario:', err);
+    return '';
+  }
 }
+
 const GA_USER = getUserGAFromURL();
 
 // --- Configurar ambos GA (solo si existen) ---
