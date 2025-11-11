@@ -115,6 +115,69 @@ button .material-icons {
 }
 
 
+.catalogContainer {
+  position: absolute;
+bottom: 1%;
+  left: 20px;
+  z-index: 10000;
+}
+
+.catalogButton {
+   position: relative;
+  bottom: 0px; /* se abre hacia abajo */
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  font-size: 20px;
+}
+
+#catalogHUD {
+  margin-bottom: 8px;
+  width: 260px;
+  background: rgba(255, 255, 255, 0.446);
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  backdrop-filter: blur(6px);
+
+  transform: scale(0.3);
+  transform-origin: top left;
+  opacity: 0.0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+
+/* Hover / activado */
+.catalogButton:hover + #catalogHUD,
+#catalogHUD.active {
+  transform: scale(1);
+  opacity: 1;
+}
+#modelName {
+  position: fixed;       /* Fijo en la ventana */
+  bottom: 20px;          /* Separado 10px del borde inferior */
+  left: 8%;             /* Centrado horizontalmente */
+  transform: translateX(-50%); /* Ajusta para que quede exactamente centrado */
+  padding: 6px 12px;
+  background: rgba(189, 189, 189, 0.6);
+  color: #fff;
+  border-radius: 16px;
+  font-size: 13px;
+  font-family: Inter, system-ui, Arial;
+  z-index: 9999;         /* Por encima de todo */
+  pointer-events: none;  /* Para que no interfiera con clicks */
+  backdrop-filter: blur(4px);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
 
 </style>
 </head>
@@ -172,30 +235,19 @@ button .material-icons {
     </div>
     <canvas id="c"></canvas>
 
-<div id="catalogHUD" style="
-  position:absolute;
-  bottom:10px;
-  left: 2px;
-  width:260px;
-  background:rgba(255, 255, 255, 0.446);
-  border:1px solid #ddd;
-  border-radius:12px;
-  padding:10px 14px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.2);
-  backdrop-filter:blur(6px);
-  z-index:10;
-  display:none;
-font-family: Inter, system-ui, Arial;
-scale:0.8;
-">
-  <h4 style="margin:0 0 6px;">Autenticidad</h4>
-  <div style="display:flex;align-items:center;gap:8px;">
-    <img id="catalogSealLogo" src="https://virtualshubs.github.io/personalizador/3dtwinslogo2025:2026.png"
-         style="width:48px;height:48px;border-radius:8px;flex-shrink:0;">
-    <div id="catalogHUDContent" style="font-size:13px;line-height:1.4;"></div>
+<div class="catalogContainer">
+ 
+  <div id="catalogHUD">
+    <h4 style="margin:0 0 6px;">Autenticidad</h4>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <img id="catalogSealLogo" src="https://virtualshubs.github.io/personalizador/3dtwinslogo2025:2026.png"
+           style="width:48px;height:48px;border-radius:8px;flex-shrink:0;">
+      <div id="catalogHUDContent" style="font-size:13px;line-height:1.4;">
+      </div>
+    </div>
   </div>
+   <div class="catalogButton">👤</div>
 </div>
-
 <button id="toggleHudButton">⚙️​</button>
 
   <div id="hudButtons" style="display: none;"></div> 
@@ -345,6 +397,15 @@ output_circle
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 
 <script>
+
+      const catalogButton = document.querySelector('.catalogButton');
+
+
+catalogButton.addEventListener('click', () => {
+  catalogHUD.classList.toggle('active'); // esto simula el hover
+});
+
+
 
 window.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("modelUrlInput");
