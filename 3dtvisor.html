@@ -407,26 +407,6 @@ catalogButton.addEventListener('click', () => {
 
 
 
-// --- Función auxiliar para decodificar URLs tokenizadas ---
-function decodeModelUrl(encoded) {
-  try {
-    if (!encoded) return "";
-    if (encoded.startsWith("http")) return encoded; // ya es normal
-
-    const base64Regex = /^[A-Za-z0-9+/=]+$/;
-    if (base64Regex.test(encoded)) {
-      const decoded = atob(encoded);
-      if (decoded.startsWith("http")) return decoded;
-    }
-
-    return encoded; // si no parece base64, la dejamos tal cual
-  } catch (err) {
-    console.error("❌ Error al decodificar la URL del modelo:", err);
-    return encoded;
-  }
-}
-
-// --- Lógica inicial: detectar URL y cargar automáticamente ---
 window.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("modelUrlInput");
   const btn = document.getElementById("loadModelFromUrlBtn");
@@ -435,28 +415,14 @@ window.addEventListener("DOMContentLoaded", () => {
 
   if (!input || !btn || !startScreen || !appContainer) return;
 
-  let fullUrl = window.location.href;
-
-  // 🔒 Si la URL viene tokenizada (en base64), decodificamos antes de usarla
-  const params = new URLSearchParams(fullUrl.split("?")[1]);
-  let modelUrl = params.get("modelUrl");
-
-  if (modelUrl) {
-    const decoded = decodeModelUrl(modelUrl);
-    if (decoded !== modelUrl) {
-      params.set("modelUrl", decoded);
-      fullUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
-      console.log("🔓 URL decodificada al iniciar:", decoded);
-    }
-  }
-
-  // Asignar la URL (ya limpia o decodificada) al input
+  const fullUrl = window.location.href;
   input.value = fullUrl;
 
   startScreen.style.display = "none";
   appContainer.style.display = "block";
 
   // 🔹 Detectar si contiene datos de escena
+  const params = new URLSearchParams(fullUrl.split("?")[1]);
   const isScene = params.has("scene") || params.has("hud") || params.has("bgColor");
 
   setTimeout(() => {
@@ -467,6 +433,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }, 500);
 });
+
 
 
 
