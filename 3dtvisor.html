@@ -407,12 +407,33 @@ catalogButton.addEventListener('click', () => {
 
 
 
-document.getElementById("appContainer"); 
-      if (!input || !btn || !startScreen || !appContainer) return; const fullUrl = window.location.href; 
-      input.value = fullUrl; startScreen.style.display = "none"; appContainer.style.display = "block"; // 🔹 Detectar si contiene datos de escena 
-      const params = new URLSearchParams(fullUrl.split("?")[1]); 
-      const isScene = params.has("scene") || params.has("hud") || params.has("bgColor"); setTimeout(() => { if (isScene) { modelUrlInput(fullUrl); } else { btn.click(); 
-     } }, 500); });
+window.addEventListener("DOMContentLoaded", () => {
+  const input = document.getElementById("modelUrlInput");
+  const btn = document.getElementById("loadModelFromUrlBtn");
+  const startScreen = document.getElementById("startScreen");
+  const appContainer = document.getElementById("appContainer");
+
+  if (!input || !btn || !startScreen || !appContainer) return;
+
+  const fullUrl = window.location.href;
+  input.value = fullUrl;
+
+  startScreen.style.display = "none";
+  appContainer.style.display = "block";
+
+  // 🔹 Detectar si contiene datos de escena
+  const params = new URLSearchParams(fullUrl.split("?")[1]);
+  const isScene = params.has("scene") || params.has("hud") || params.has("bgColor");
+
+  setTimeout(() => {
+    if (isScene) {
+      modelUrlInput(fullUrl);
+    } else {
+      btn.click(); // usa la lógica normal de producto
+    }
+  }, 500);
+});
+
 
 
 
