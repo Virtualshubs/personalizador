@@ -83,6 +83,29 @@ function rebuildManifest(scene) {
 }
 
 // -----------------------------------------------------------
+// EXTRAER PARAMS DE QUERY STRING DEL LOADER
+// -----------------------------------------------------------
+function getLoaderParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const params = {};
+    for (let [key, value] of urlParams.entries()) {
+        params[key] = decodeURIComponent(value);
+    }
+    return params;
+}
+
+// -----------------------------------------------------------
+// COMBINAR PARAMS DEL LOADER CON URL DEL VISOR
+// -----------------------------------------------------------
+function buildVisorUrl(runtimeURL, loaderParams) {
+    const url = new URL(runtimeURL);
+    for (let key in loaderParams) {
+        url.searchParams.set(key, loaderParams[key]);
+    }
+    return url.toString();
+}
+
+// -----------------------------------------------------------
 // CREAR IFRAME A PANTALLA COMPLETA
 // -----------------------------------------------------------
 function launchIframe(url) {
@@ -116,10 +139,13 @@ function launchIframe(url) {
             return;
         }
 
+        const loaderParams = getLoaderParams();
+        const finalVisorUrl = buildVisorUrl(manifest.runtimeURL, loaderParams);
+
         document.getElementById("status").innerText =
             "Abriendo visor interoperable…";
 
-        launchIframe(manifest.runtimeURL);
+        launchIframe(finalVisorUrl);
 
     } catch (err) {
         console.error(err);
