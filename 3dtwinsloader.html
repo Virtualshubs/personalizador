@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Loader Interoperable</title>
+<style>
+  body {
+    margin: 0;
+    background: #000;
+    color: white;
+    font-family: Arial, sans-serif;
+  }
+  #status {
+    position: fixed;
+    top: 20px;
+    width: 100%;
+    text-align: center;
+    font-size: 18px;
+  }
+</style>
+</head>
+<body>
+
+<div id="status">Cargando GLB sellado…</div>
+
+<script>
+// -----------------------------------------------------------
+// URL DEL GLB SELLADO
+// (tú la sustituyes por la de GitHub)
+// -----------------------------------------------------------
+const MODEL_URL = "https://virtualshubs.github.io/personalizador/cubo_sellado.glb";
+
+// -----------------------------------------------------------
+// LECTOR SIMPLE DE GLB SIN THREE.JS
+// -----------------------------------------------------------
+async function loadGLB(url) {
+    const res = await fetch(url);
+    const arrayBuffer = await res.arrayBuffer();
+
+    // cabecera glTF binario: magic(4) + version(4) + length(4)
+    const header = new DataView(arrayBuffer, 0, 12);
+    const magic = header.getUint32(0, true);
+    if (magic !== 0x46546C67) { // "glTF"
+        throw new Error("No es un GLB válido");
+    }
+
+    let offset = 12;
+    let jsonChunk = null;
+
+    while (offset < arrayBuffer.byteLength) {
+        const view = new DataView(arrayBuffer, offset, 8);
+        const chunkLength = view.getUint32(0, true);
+        const chunkType = view.getUint32(4, true);
+        offset += 8;
+
+        const chunkData = arrayBuffer.slice(offset, offset + chunkLength);
+
+        if (chunkType === 0x4E4F534A) { // JSON
+            jsonChunk = new TextDecoder().decode(chunkData);
+        }
+
+        offset += chunkLength;
+    }
+
+    return JSON.parse(jsonChunk);
+}
+
+// -----------------------------------------------------------
+// RECONSTRUIR MANIFEST DESDE CHUNKS BASE64
+// -----------------------------------------------------------
+function rebuildManifest(scene) {
+    if (!scene.nodes) return null;
+
+    for (let node of scene.nodes) {
+        if (node.extras && node.extras.manifestChunks) {
+            let chunks = node.extras.manifestChunks;
+            let base64 = chunks.join("");
+            let jsonText = atob(base64);
+            return JSON.parse(jsonText);
+        }
+    }
+    return null;
+}
+
+// -----------------------------------------------------------
+// CREAR IFRAME A PANTALLA COMPLETA
+// -----------------------------------------------------------
+function launchIframe(url) {
+    const iframe = document.createElement("iframe");
+    iframe.src = url;
+    iframe.style.position = "fixed";
+    iframe.style.top = 0;
+    iframe.style.left = 0;
+    iframe.style.width = "100vw";
+    iframe.style.height = "100vh";
+    iframe.style.border = "none";
+    iframe.style.zIndex = 9999;
+
+    document.body.innerHTML = "";
+    document.body.appendChild(iframe);
+}
+
+// -----------------------------------------------------------
+// PROCESO PRINCIPAL
+// -----------------------------------------------------------
+(async () => {
+    try {
+        document.getElementById("status").innerText = "Leyendo GLB…";
+
+        const glb = await loadGLB(MODEL_URL);
+        const manifest = rebuildManifest(glb);
+
+        if (!manifest || !manifest.runtimeURL) {
+            document.getElementById("status").innerText =
+                "No se encontró manifest en el GLB";
+            return;
+        }
+
+        document.getElementById("status").innerText =
+            "Abriendo visor interoperable…";
+
+        launchIframe(manifest.runtimeURL);
+
+    } catch (err) {
+        console.error(err);
+        document.getElementById("status").innerText = "Error cargando GLB.";
+    }
+})();
+</script>
+
+</body>
+</html>
