@@ -407,31 +407,42 @@ catalogButton.addEventListener('click', () => {
 
 
 window.addEventListener("DOMContentLoaded", () => {
+  const input = document.getElementById("modelUrlInput");
+  const btn = document.getElementById("loadModelFromUrlBtn");
+  const startScreen = document.getElementById("startScreen");
+  const appContainer = document.getElementById("appContainer");
 
-  const full = window.location.href;
+  if (!input || !btn || !startScreen || !appContainer) return;
 
-  // Si NO hay ?t= → flujo normal
-  const p = new URLSearchParams(full.split("?")[1]);
-  if (!p.has("t")) {
-    startNormalBoot(); 
-    return;
+  let fullUrl = window.location.href;
+
+  // 🔹 Revisar si existe parámetro t= para decodificar
+  const params = new URLSearchParams(fullUrl.split("?")[1]);
+  if (params.has("t")) {
+    try {
+      const decoded = atob(params.get("t")); // Decodifica Base64
+      fullUrl = decoded; // Reemplazamos la URL tokenizada por la original decodificada
+    } catch (err) {
+      console.error("Error decodificando t=", err);
+    }
   }
 
-  // --- 1️⃣ Obtener t ---
-  const encoded = p.get("t");
-  let decodedUrl = "";
+  input.value = fullUrl;
 
-  try {
-    decodedUrl = atob(encoded); // decodificación global del editor
-  } catch (err) {
-    console.error("Error decoding Base64 URL:", err);
-    startNormalBoot();
-    return;
-  }
+  startScreen.style.display = "none";
+  appContainer.style.display = "block";
 
-  // --- 2️⃣ Inyectamos la URL decodificada en el flujo original ---
-  //     (Aquí NO decodificamos GA, lo hará tu función existente)
-  modelUrlInput(decodedUrl);
+  // 🔹 Detectar si contiene datos de escena
+  const sceneParams = new URLSearchParams(fullUrl.split("?")[1]);
+  const isScene = sceneParams.has("scene") || sceneParams.has("hud") || sceneParams.has("bgColor");
+
+  setTimeout(() => {
+    if (isScene) {
+      modelUrlInput(fullUrl);
+    } else {
+      btn.click(); // usa la lógica normal de producto
+    }
+  }, 500);
 });
 
 
