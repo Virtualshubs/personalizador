@@ -427,6 +427,7 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // 🔹 Actualizamos el input con la URL decodificada
   input.value = fullUrl;
 
   startScreen.style.display = "none";
@@ -438,9 +439,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
   setTimeout(() => {
     if (isScene) {
+      // ⚡️ PASAMOS explícitamente la URL decodificada a modelUrlInput
       modelUrlInput(fullUrl);
     } else {
-      btn.click(); // usa la lógica normal de producto
+      // ⚡️ Modificamos el click para usar la URL decodificada también si fuese necesario
+      btn.click();
     }
   }, 500);
 });
